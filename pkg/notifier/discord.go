@@ -3,6 +3,7 @@ package notifier
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/lba-studio/n-cli/internal/config"
@@ -29,6 +30,10 @@ func (n *DiscordNotifier) Notify(ctx context.Context, msg string) error {
 		return ErrMissingDiscordConfig
 	}
 	url := cfg.Discord.WebhookURL
+	format := cfg.Discord.MessageFormat
+	if format != "" {
+		msg = strings.Replace(format, "{{message}}", msg, 1)
+	}
 	payload := discordPayload{
 		Content: msg,
 	}

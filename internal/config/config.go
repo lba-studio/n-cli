@@ -12,7 +12,8 @@ import (
 )
 
 type DiscordConfig struct {
-	WebhookURL string `mapstructure:"webhookUrl"`
+	WebhookURL    string `mapstructure:"webhookUrl"`
+	MessageFormat string `mapstructure:"messageFormat"`
 }
 
 // Config struct to hold the configuration values
