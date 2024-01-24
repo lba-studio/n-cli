@@ -13,9 +13,13 @@ Do open an issue if you're interested in a notification channel being implemente
 
 # Installation
 
+Through `go install` (easiest if you have Go installed):
+
 ```shell
 go install github.com/lba-studio/n-cli@latest
 ```
+
+If you don't have Go installed: download the latest release for your machine here: [Releases](https://github.com/lba-studio/n-cli/releases/)
 
 # Usage
 
