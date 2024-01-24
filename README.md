@@ -46,6 +46,7 @@ make build; n Build is done;
 Default config is at `~/.n-cli/config.yaml`
 
 ```yaml
-discord:
+discord: # if missing, n-cli won't use Discord as a notification channel
   webhookUrl: https://discord.com/api/webhooks/{yourwebhookurlhere}
+  messageFormat: "<@1234> {{message}}"
 ```
