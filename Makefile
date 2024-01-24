@@ -7,3 +7,6 @@ tag:
 	@echo "Using tag: ${tag_candidate}"
 	git tag ${tag_candidate}
 	git push origin refs/tags/${tag_candidate}
+
+build:
+	go build -v .
