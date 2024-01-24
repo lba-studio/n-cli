@@ -3,6 +3,7 @@ package notifier
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/lba-studio/n-cli/internal/config"
@@ -29,13 +30,19 @@ func Notify(msg string) error {
 		notifierMap["discord"] = NewDiscordNotifier()
 	}
 
+	erroredNotifiers := make([]string, 0, len(notifierMap))
 	for label, notifier := range notifierMap {
 		fmt.Printf("Sending %s: ...", label)
 		if err := notifier.Notify(ctx, msg); err != nil {
 			fmt.Printf("ERROR (%s)\n", err.Error())
-			return err
+			// return err
+			erroredNotifiers = append(erroredNotifiers, label)
+			continue
 		}
 		fmt.Printf("OK\n")
+	}
+	if len(erroredNotifiers) > 0 {
+		return fmt.Errorf("one or more notifiers failed: %s", strings.Join(erroredNotifiers, ", "))
 	}
 	return nil
 }
