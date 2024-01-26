@@ -42,7 +42,7 @@ func TestDiscordNotifier(t *testing.T) {
 			doMock: func() {
 				mockConfigurer.On("GetConfig").Return(config.Config{}, nil)
 			},
-			wantErr:              ErrMissingDiscordConfig,
+			wantErr:              ErrDiscordMissingConfig,
 			shouldAPINotBeCalled: true,
 		},
 		{
@@ -61,6 +61,18 @@ func TestDiscordNotifier(t *testing.T) {
 				responder := httpmock.NewStringResponder(400, `{"message": "Yo this is broken"}`)
 				httpmock.RegisterResponder("POST", defaultConfig.Discord.WebhookURL, responder)
 			},
+		},
+		{
+			name:    "sad path - discord config has messageFormat but it's missing the message placeholder",
+			wantErr: errors.New("{{message}} placeholder is missing from messageFormat"),
+			doMock: func() {
+				mockConfigurer.On("GetConfig").Return(config.Config{
+					Discord: &config.DiscordConfig{
+						WebhookURL:    "https://blah.com",
+						MessageFormat: "oop this has no placeholder",
+					}}, nil)
+			},
+			shouldAPINotBeCalled: true,
 		},
 	}
 

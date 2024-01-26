@@ -21,7 +21,8 @@ type discordPayload struct {
 }
 
 var (
-	ErrMissingDiscordConfig = errors.New("missing discord config")
+	ErrDiscordMissingConfig            = errors.New("missing discord config")
+	ErrDiscordFormatMissingPlaceholder = errors.New("{{message}} placeholder is missing from messageFormat")
 )
 
 func (n *DiscordNotifier) Notify(ctx context.Context, msg string) error {
@@ -30,12 +31,16 @@ func (n *DiscordNotifier) Notify(ctx context.Context, msg string) error {
 		return err
 	}
 	if cfg.Discord == nil {
-		return ErrMissingDiscordConfig
+		return ErrDiscordMissingConfig
 	}
 	url := cfg.Discord.WebhookURL
 	format := cfg.Discord.MessageFormat
 	if format != "" {
-		msg = strings.Replace(format, "{{message}}", msg, 1)
+		const messagePlaceholder = "{{message}}"
+		if !strings.Contains(format, messagePlaceholder) {
+			return ErrDiscordFormatMissingPlaceholder
+		}
+		msg = strings.Replace(format, messagePlaceholder, msg, 1)
 	}
 	payload := discordPayload{
 		Content: msg,
