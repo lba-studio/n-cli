@@ -3,14 +3,17 @@ package notifier
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/lba-studio/n-cli/internal/config"
 )
 
 type DiscordNotifier struct {
-	restyCli *resty.Client
+	restyCli   *resty.Client
+	configurer config.Configurer
 }
 
 type discordPayload struct {
@@ -22,7 +25,7 @@ var (
 )
 
 func (n *DiscordNotifier) Notify(ctx context.Context, msg string) error {
-	cfg, err := config.GetConfig()
+	cfg, err := n.configurer.GetConfig()
 	if err != nil {
 		return err
 	}
@@ -37,9 +40,13 @@ func (n *DiscordNotifier) Notify(ctx context.Context, msg string) error {
 	payload := discordPayload{
 		Content: msg,
 	}
-	_, err = n.restyCli.R().
+	resp, err := n.restyCli.R().
+		SetContext(ctx).
 		SetBody(&payload).
 		Post(url)
+	if resp.StatusCode() >= 400 {
+		return fmt.Errorf("failed to call Discord: %s", resp.String())
+	}
 	if err != nil {
 		return err
 	}
@@ -48,6 +55,10 @@ func (n *DiscordNotifier) Notify(ctx context.Context, msg string) error {
 
 func NewDiscordNotifier() Notifier {
 	return &DiscordNotifier{
-		restyCli: resty.New().SetHeader("Content-Type", "application/json"),
+		restyCli: resty.New().
+			SetHeader("Content-Type", "application/json").
+			SetRetryCount(3).
+			SetTimeout(10 * time.Second),
+		configurer: config.NewConfigurer(),
 	}
 }

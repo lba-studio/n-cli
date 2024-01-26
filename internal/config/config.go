@@ -21,6 +21,21 @@ type Config struct {
 	Discord *DiscordConfig `mapstructure:"discord"`
 }
 
+//go:generate mockery --name Configurer
+type Configurer interface {
+	GetConfig() (cfg Config, err error)
+}
+
+type ConfigurerImpl struct{}
+
+func NewConfigurer() Configurer {
+	return &ConfigurerImpl{}
+}
+
+func (c *ConfigurerImpl) GetConfig() (cfg Config, err error) {
+	return GetConfig()
+}
+
 func GetConfig() (cfg Config, err error) {
 	err = viper.Unmarshal(&cfg)
 	return

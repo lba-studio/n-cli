@@ -1,0 +1,3 @@
+inpackage: true
+filename: "z_mock.go"
+log-level: error
