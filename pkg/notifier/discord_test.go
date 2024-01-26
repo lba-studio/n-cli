@@ -38,6 +38,18 @@ func TestDiscordNotifier(t *testing.T) {
 			},
 		},
 		{
+			name: "happy path - with messageFormat",
+			doMock: func() {
+				mockConfigurer.On("GetConfig").Return(config.Config{
+					Discord: &config.DiscordConfig{
+						WebhookURL:    "https://blah.com",
+						MessageFormat: "my message is {{message}}",
+					}}, nil)
+				responder := httpmock.NewStringResponder(200, "")
+				httpmock.RegisterResponder("POST", defaultConfig.Discord.WebhookURL, responder)
+			},
+		},
+		{
 			name: "do not run when discord has no config",
 			doMock: func() {
 				mockConfigurer.On("GetConfig").Return(config.Config{}, nil)
