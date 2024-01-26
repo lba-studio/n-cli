@@ -46,6 +46,14 @@ func onInitFail(tag string, err error) {
 }
 
 func InitConfigWhenMissing() error {
+	return InitConfig(InitConfigOptions{})
+}
+
+type InitConfigOptions struct {
+	DoNotSkipIfFileExists bool
+}
+
+func InitConfig(opts InitConfigOptions) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		onInitFail("check.homedirectory", err)
@@ -57,7 +65,20 @@ func InitConfigWhenMissing() error {
 
 	// Check if the file already exists
 	if _, err := os.Stat(filePath); err == nil {
-		return nil
+		if !opts.DoNotSkipIfFileExists {
+			return nil
+		}
+		shouldOverwrite, err := prompt.New().
+			Ask(fmt.Sprintf("A config file already exists in %s. Do you want to overwrite it with a new one?", filePath)).
+			Choose([]string{"Yes", "No"})
+		if err != nil {
+			onInitFail("prompt.overwrite", err)
+			return err
+		}
+		if shouldOverwrite != "Yes" {
+			fmt.Println("Okay, sure thing - I won't overwrite your config file. Feel free to run the command again if you change your mind.")
+			return nil
+		}
 	}
 	if err := os.MkdirAll(dirPath, 0700); err != nil {
 		onInitFail("init.mkdir", err)
