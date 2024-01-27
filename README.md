@@ -26,7 +26,7 @@ If you don't have Go installed: download the latest release for your machine her
 
 {version} refers to the current version of n-cli.
 
-| MacOS Apple Silicon                 | MacOS Intel                         | Windows Intel 64-bit                 |
+| MacOS Apple Silicon                 | MacOS Intel                         | Windows Intel 64-bit (Not Stable)    |
 | ----------------------------------- | ----------------------------------- | ------------------------------------ |
 | n-cli-{version}-darwin-arm64.tar.gz | n-cli-{version}-darwin-amd64.tar.gz | n-cli-{version}-windows-amd64.tar.gz |
 
