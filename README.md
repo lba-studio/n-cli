@@ -6,8 +6,8 @@ Why stare at your laptop when you can go make yourself a coffee and have your co
 
 - Desktop notification
 - Discord notification through webhooks
+- Slack notification through webhooks
 - [Planned] Mobile app notification through our mobile app
-- [Planned] Slack notification
 
 Do open an issue if you're interested in a notification channel being implemented.
 
@@ -55,4 +55,8 @@ Default config is at `~/.n-cli/config.yaml`
 discord: # if missing, n-cli won't use Discord as a notification channel
   webhookUrl: https://discord.com/api/webhooks/{yourwebhookurlhere}
   messageFormat: "<@1234> {{message}}"
+
+slack: # if missing, n-cli won't use Slack as a notification channel
+  webhookUrl: https://discord.com/api/webhooks/{yourwebhookurlhere}
+  messageFormat: "{{message}}"
 ```
