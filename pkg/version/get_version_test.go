@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/lba-studio/n-cli/pkg/version"
@@ -21,7 +22,7 @@ func TestGetVersion(t *testing.T) {
 		t.Errorf("cannot get git tag: %s", err.Error())
 		return
 	}
-	gitTag := gitTagOut.String()
+	gitTag := strings.TrimSpace(gitTagOut.String())
 	assert.NotEqual(t, "", gitTag, "git tag is empty")
 	assert.Equal(t, gitTag, version.GetVersion())
 }
