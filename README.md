@@ -39,6 +39,12 @@ make build; n-cli s "Build is done, stop making coffee"
 # pro tip: you can set an alias to make the whole command shorter
 alias n="n-cli s"
 make build; n Build is done;
+
+# optional: initializes & configures n-cli without running anything
+n-cli init
+
+# get version
+n-cli version
 ```
 
 # Configuration
