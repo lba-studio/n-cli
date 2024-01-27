@@ -9,6 +9,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/lba-studio/n-cli/internal/config"
 	"github.com/lba-studio/n-cli/pkg/notifier/utils"
+	restyutils "github.com/lba-studio/n-cli/pkg/resty_utils"
 )
 
 type DiscordNotifier struct {
@@ -46,11 +47,11 @@ func (n *DiscordNotifier) Notify(ctx context.Context, msg string) error {
 		SetContext(ctx).
 		SetBody(&payload).
 		Post(url)
-	if resp.StatusCode() >= 400 {
-		return fmt.Errorf("failed to call Discord: %s", resp.String())
-	}
 	if err != nil {
 		return err
+	}
+	if resp.StatusCode() >= 400 {
+		return fmt.Errorf("failed to call Discord: %s", resp.String())
 	}
 	return nil
 }
@@ -60,6 +61,7 @@ func NewDiscordNotifier() Notifier {
 		restyCli: resty.New().
 			SetHeader("Content-Type", "application/json").
 			SetRetryCount(3).
+			SetLogger(&restyutils.RestyLogger{}).
 			SetTimeout(10 * time.Second),
 		configurer: config.NewConfigurer(),
 	}
