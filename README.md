@@ -59,6 +59,7 @@ discord: # if missing, n-cli won't use Discord as a notification channel
 
 slack: # if missing, n-cli won't use Slack as a notification channel
   # you can create one by following the steps here https://slack.com/intl/en-gb/help/articles/360041352714-Create-workflows-that-start-with-a-webhook
+  # must have "message" as a variable. sample payload to the webhook: { "message": "{{message}}" }
   webhookUrl: https://hooks.slack.com/triggers/ABCDEFG123/123456789/whateverstringishere
   messageFormat: "{{message}}"
 ```
