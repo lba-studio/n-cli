@@ -33,9 +33,6 @@ func TestSlackNotifier(t *testing.T) {
 			name: "happy path",
 			doMock: func() {
 				mockConfigurer.On("GetConfig").Return(defaultConfig, nil)
-				// responder := httpmock.NewStringResponder(200, `{"ok": true}`).HeaderAdd(map[string][]string{
-				// 	"Content-Type": []string{"application/json"},
-				// })
 				responder := httpmock.NewJsonResponderOrPanic(200, map[string]any{"ok": true})
 				httpmock.RegisterResponder("POST", defaultConfig.Slack.WebhookURL, responder)
 			},
