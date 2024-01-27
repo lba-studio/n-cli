@@ -30,6 +30,10 @@ func Notify(msg string) error {
 		notifierMap["discord"] = NewDiscordNotifier()
 	}
 
+	if cfg.Slack != nil {
+		notifierMap["slack"] = NewSlackNotifier()
+	}
+
 	erroredNotifiers := make([]string, 0, len(notifierMap))
 	for label, notifier := range notifierMap {
 		fmt.Printf("Sending %s: ...", label)

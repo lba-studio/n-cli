@@ -11,16 +11,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type DiscordConfig struct {
-	WebhookURL    string `mapstructure:"webhookUrl"`
-	MessageFormat string `mapstructure:"messageFormat"`
-}
-
-// Config struct to hold the configuration values
-type Config struct {
-	Discord *DiscordConfig `mapstructure:"discord"`
-}
-
 //go:generate mockery --name Configurer
 type Configurer interface {
 	GetConfig() (cfg Config, err error)

@@ -11,43 +11,51 @@ import (
 	"github.com/lba-studio/n-cli/pkg/notifier/utils"
 )
 
-type DiscordNotifier struct {
+type SlackNotifier struct {
 	restyCli   *resty.Client
 	configurer config.Configurer
 }
 
-type discordPayload struct {
-	Content string `json:"content"`
+type slackPayload struct {
+	Message string `json:"message"`
+}
+
+type slackResponse struct {
+	OK bool `json:"ok"`
 }
 
 var (
-	ErrDiscordMissingConfig            = errors.New("missing discord config")
-	ErrDiscordFormatMissingPlaceholder = errors.New("{{message}} placeholder is missing from messageFormat")
+	ErrSlackMissingConfig = errors.New("missing slack config")
 )
 
-func (n *DiscordNotifier) Notify(ctx context.Context, msg string) error {
+func (n *SlackNotifier) Notify(ctx context.Context, msg string) error {
 	cfg, err := n.configurer.GetConfig()
 	if err != nil {
 		return err
 	}
-	if cfg.Discord == nil {
-		return ErrDiscordMissingConfig
+	if cfg.Slack == nil {
+		return ErrSlackMissingConfig
 	}
-	url := cfg.Discord.WebhookURL
-	format := cfg.Discord.MessageFormat
+	url := cfg.Slack.WebhookURL
+	format := cfg.Slack.MessageFormat
 	msg, err = utils.GetMessageFromFormat(format, msg)
 	if err != nil {
 		return err
 	}
-	payload := discordPayload{
-		Content: msg,
+	payload := slackPayload{
+		Message: msg,
 	}
 	resp, err := n.restyCli.R().
 		SetContext(ctx).
 		SetBody(&payload).
+		SetResult(slackResponse{}).
 		Post(url)
 	if resp.StatusCode() >= 400 {
-		return fmt.Errorf("failed to call Discord: %s", resp.String())
+		return fmt.Errorf("failed to call Slack: %s", resp.String())
+	}
+	responseBody := *resp.Result().(*slackResponse)
+	if !responseBody.OK {
+		return fmt.Errorf("responseBody not ok: responseBody=%+v resp.String=%s", responseBody, resp.String())
 	}
 	if err != nil {
 		return err
@@ -55,8 +63,8 @@ func (n *DiscordNotifier) Notify(ctx context.Context, msg string) error {
 	return nil
 }
 
-func NewDiscordNotifier() Notifier {
-	return &DiscordNotifier{
+func NewSlackNotifier() Notifier {
+	return &SlackNotifier{
 		restyCli: resty.New().
 			SetHeader("Content-Type", "application/json").
 			SetRetryCount(3).
