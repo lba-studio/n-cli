@@ -1,4 +1,4 @@
-tag_candidate = v${shell date +"%Y%m%d"}${suffix}
+tag_candidate = ${shell go run . version}
 
 config:
 	code $(shell go run . where config)
