@@ -9,6 +9,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/lba-studio/n-cli/internal/config"
 	"github.com/lba-studio/n-cli/pkg/notifier/utils"
+	"github.com/lba-studio/n-cli/pkg/notifier/webhook"
 	restyutils "github.com/lba-studio/n-cli/pkg/resty_utils"
 )
 
@@ -38,6 +39,9 @@ func (n *SlackNotifier) Notify(ctx context.Context, msg string) error {
 		return ErrSlackMissingConfig
 	}
 	url := cfg.Slack.WebhookURL
+	if url == "" {
+		return webhook.ErrWebhookMissingWebhookURL
+	}
 	format := cfg.Slack.MessageFormat
 	msg, err = utils.GetMessageFromFormat(format, msg)
 	if err != nil {
