@@ -29,9 +29,12 @@ var (
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.n-cli/config.yaml)")
-	rootCmd.AddCommand(NewSendCmd())
-	rootCmd.AddCommand(NewWhereCmd())
-	rootCmd.AddCommand(NewInitCmd())
+	rootCmd.AddCommand(
+		NewSendCmd(),
+		NewWhereCmd(),
+		NewInitCmd(),
+		NewVersionCmd(),
+	)
 }
 
 func initConfig() {

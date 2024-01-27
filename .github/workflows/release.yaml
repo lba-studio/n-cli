@@ -28,6 +28,8 @@ jobs:
           go-version: "1.21.x"
       - run: go version
       - run: go get
+      - run: make test_version
+        name: Is git tag == "n-cli version"?
       - uses: wangyoucao577/go-release-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
