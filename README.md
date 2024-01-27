@@ -1,9 +1,10 @@
-# N-CLI - Send notifications to yourself
+# ✉️ Notification CLI (n-cli) - Send notifications to yourself through the command line
 
 Why stare at your laptop when you can go make yourself a coffee and have your computer let you know when it's done compiling that monstrous 4GB monorepo?
 
-# Features
+# 🚀 Features
 
+- Works out-of-the-box - no need to go through any external service (other than your chat apps, of course)
 - Desktop notification
 - Discord notification through [Discord webhooks](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks)
 - Slack notification through [Slack workflow webhooks](https://slack.com/intl/en-gb/help/articles/360041352714-Create-workflows-that-start-with-a-webhook)
@@ -11,9 +12,9 @@ Why stare at your laptop when you can go make yourself a coffee and have your co
 
 Do open an issue if you're interested in a notification channel being implemented.
 
-# Installation
+# 👨🏻‍💻 Installation
 
-Through `go install` (easiest if you have Go installed):
+Through `go install` (easiest if you have Go 1.21 installed):
 
 ```shell
 go install github.com/lba-studio/n-cli@latest
@@ -21,7 +22,17 @@ go install github.com/lba-studio/n-cli@latest
 
 If you don't have Go installed: download the latest release for your machine here: [Releases](https://github.com/lba-studio/n-cli/releases/)
 
-# Usage
+## Which one should I download?
+
+{version} refers to the current version of n-cli.
+
+| MacOS Apple Silicon                 | MacOS Intel                         | Windows Intel 64-bit                 |
+| ----------------------------------- | ----------------------------------- | ------------------------------------ |
+| n-cli-{version}-darwin-arm64.tar.gz | n-cli-{version}-darwin-amd64.tar.gz | n-cli-{version}-windows-amd64.tar.gz |
+
+_\*Open an issue / PR if this table is wrong, thank you!_
+
+# 🐈 Usage
 
 ```sh
 n-cli --help
@@ -47,7 +58,7 @@ n-cli init
 n-cli version
 ```
 
-# Configuration
+# 📝 Configuration
 
 Default config is at `~/.n-cli/config.yaml`
 
