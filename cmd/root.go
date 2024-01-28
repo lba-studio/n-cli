@@ -42,6 +42,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		viper.AddConfigPath("$HOME/.n-cli")
+		viper.AddConfigPath("$USERPROFILE/.n-cli")
 		viper.SetConfigName("config")
 		if err := config.InitConfigWhenMissing(); err != nil {
 			fmt.Println("Exiting - config is missing and we cannot initialise a new one.")
