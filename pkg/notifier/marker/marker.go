@@ -27,13 +27,13 @@ func NewNotificationMarker(cmd *exec.Cmd) NotificationMarker {
 
 func (m *NotificationMarkerImpl) Done() {
 	elapsed := time.Since(m.StartedFrom)
-	elapsedMs := elapsed.Milliseconds()
+	// elapsedMs := elapsed.Milliseconds()
 
 	if m.Command.ProcessState.ExitCode() < 0 {
 		return
 	}
 
-	msg := fmt.Sprintf("Command `%s` is complete. Elapsed: %dms", strings.Join(m.Command.Args, " "), elapsedMs)
+	msg := fmt.Sprintf("Command `%s` is complete. Elapsed: %s", strings.Join(m.Command.Args, " "), elapsed.String())
 	err := notifier.Notify(msg)
 	if err != nil {
 		fmt.Printf("Error encountered when sending notification: %s\n", err.Error())
