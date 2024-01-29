@@ -34,6 +34,7 @@ func init() {
 		NewWhereCmd(),
 		NewInitCmd(),
 		NewVersionCmd(),
+		NewRunCmd(),
 	)
 }
 
