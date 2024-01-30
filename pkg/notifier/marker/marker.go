@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lba-studio/n-cli/pkg/monitor"
 	"github.com/lba-studio/n-cli/pkg/notifier"
 )
 
@@ -30,14 +31,16 @@ func (m *NotificationMarkerImpl) Done() {
 	// elapsedMs := elapsed.Milliseconds()
 	prettyCommand := strings.Join(m.Command.Args, " ")
 
+	cpuTime := time.Duration(time.Duration(monitor.GetCPU()) * time.Nanosecond)
+
 	exitCode := m.Command.ProcessState.ExitCode()
 	msg := ""
 	if exitCode < 0 {
 		return
 	} else if exitCode == 0 {
-		msg = fmt.Sprintf("Command `%s` COMPLETE. Elapsed: %s", prettyCommand, elapsed.String())
+		msg = fmt.Sprintf("Command `%s` COMPLETE.\nElapsed: %s\nCPU Time: %s", prettyCommand, elapsed.String(), cpuTime.String())
 	} else {
-		msg = fmt.Sprintf("Command `%s` FAILED. Status=%d. Elapsed: %s", prettyCommand, exitCode, elapsed.String())
+		msg = fmt.Sprintf("Command `%s` FAILED. Status=%d.\nElapsed: %s\nCPU Time: %s", prettyCommand, exitCode, elapsed.String(), cpuTime.String())
 	}
 
 	err := notifier.Notify(msg)
