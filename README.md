@@ -67,12 +67,12 @@ Default config is at `~/.n-cli/config.yaml`
 ```yaml
 discord: # if missing, n-cli won't use Discord as a notification channel
   # https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks
-  webhookUrl: https://discord.com/api/webhooks/{yourwebhookurlhere}
-  messageFormat: "<@1234> {{message}}"
+  webhookUrl: https://discord.com/api/webhooks/{yourwebhookurlhere} # required
+  messageFormat: "<@1234> {{message}}" # optional
 
 slack: # if missing, n-cli won't use Slack as a notification channel
   # you can create one by following the steps here https://slack.com/intl/en-gb/help/articles/360041352714-Create-workflows-that-start-with-a-webhook
   # must have "message" as a variable. sample payload to the webhook: { "message": "{{message}}" }
-  webhookUrl: https://hooks.slack.com/triggers/ABCDEFG123/123456789/whateverstringishere
-  messageFormat: "{{message}}"
+  webhookUrl: https://hooks.slack.com/triggers/ABCDEFG123/123456789/whateverstringishere # required
+  messageFormat: "{{message}}" # optional
 ```
