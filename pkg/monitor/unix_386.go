@@ -20,5 +20,5 @@ func GetMemoryFromCmd(cmd *exec.Cmd) (int64, error) {
 	if !ok {
 		return 0, ErrCallNotSupported
 	}
-	return rusage.Maxrss, nil
+	return int64(rusage.Maxrss), nil
 }
