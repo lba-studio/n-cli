@@ -41,21 +41,23 @@ n-cli --help
 n-cli send My message here
 n-cli s My message here
 
-# where is your config?
-n-cli where config
-
 # example - make build takes 20 minutes to complete
 make build; n-cli s "Build is done, stop making coffee"
+
+# alternatively, run your shell command through n-cli
+n-cli run make build
+
+# make sure to use `--` if you'd like to pass in flags
+n-cli r -- make build --whatever-args-i-have-here
 
 # pro tip: you can set an alias to make the whole command shorter
 alias n="n-cli s"
 make build; n Build is done;
 
-# optional: initializes & configures n-cli without running anything
-n-cli init
-
-# get version
-n-cli version
+# useful commands
+n-cli init # optional: initializes & configures n-cli without running anything
+n-cli where config # where is your config?
+n-cli version # get version
 ```
 
 # 📝 Configuration
