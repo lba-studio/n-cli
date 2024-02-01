@@ -1,4 +1,4 @@
-//go:build !(linux && 386) && !windows
+//go:build linux && 386
 
 package monitor
 
@@ -12,7 +12,7 @@ func GetCPU() (int64, error) {
 	usage := new(syscall.Rusage)
 	syscall.Getrusage(syscall.RUSAGE_CHILDREN, usage)
 	out := usage.Utime.Nano() + usage.Stime.Nano()
-	return out, nil
+	return int64(out), nil
 }
 
 func GetMemoryFromCmd(cmd *exec.Cmd) (int64, error) {
