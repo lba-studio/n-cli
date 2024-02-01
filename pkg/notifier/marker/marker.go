@@ -27,6 +27,34 @@ func NewNotificationMarker(cmd *exec.Cmd) NotificationMarker {
 	}
 }
 
+type printedMarkerInfo struct {
+	exitCode    int
+	elapsed     string
+	cpuTime     string
+	memoryUsage int64
+}
+
+func (m *NotificationMarkerImpl) formatMessage(info printedMarkerInfo) string {
+	status := "COMPLETE"
+	if info.exitCode > 0 {
+		status = "FAILED"
+	}
+	prettyCommand := strings.Join(m.Command.Args, " ")
+
+	infoStrings := []string{
+		fmt.Sprintf("Command `%s` %s.", prettyCommand, status),
+		fmt.Sprintf("Elapsed: %s", info.elapsed),
+	}
+	if !monitor.IsWindows() {
+		infoStrings = append(infoStrings,
+			fmt.Sprintf("CPU Time: %s", info.cpuTime),
+			fmt.Sprintf("Memory Usage: %s", formatter.PrettyPrintInt64(info.memoryUsage)),
+		)
+	}
+
+	return strings.Join(infoStrings, "\n")
+}
+
 func (m *NotificationMarkerImpl) Done() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -34,32 +62,29 @@ func (m *NotificationMarkerImpl) Done() {
 		}
 	}()
 	elapsed := time.Since(m.StartedFrom)
-	// elapsedMs := elapsed.Milliseconds()
-	prettyCommand := strings.Join(m.Command.Args, " ")
 	cpuTimeNano, err := monitor.GetCPU()
-	if err != nil {
+	if err != nil && err != monitor.ErrIsWindows {
 		fmt.Printf("Cannot get cpuTimeNano: %s\n", err.Error())
 		return
 	}
 	cpuTime := time.Duration(time.Duration(cpuTimeNano) * time.Nanosecond)
 
-	memoryUsageInt64, err := monitor.GetMemoryFromCmd(m.Command)
-	if err != nil {
+	memoryUsage, err := monitor.GetMemoryFromCmd(m.Command)
+	if err != nil && err != monitor.ErrIsWindows {
 		fmt.Printf("Cannot get memoryUsage: %s\n", err.Error())
 		return
 	}
-	memoryUsage := formatter.PrettyPrintInt64(memoryUsageInt64)
-	// memoryUsage := fmt.Sprintf("%d", memoryUsageInt64)
 
 	exitCode := m.Command.ProcessState.ExitCode()
-	msg := ""
 	if exitCode < 0 {
 		return
-	} else if exitCode == 0 {
-		msg = fmt.Sprintf("Command `%s` COMPLETE.\nElapsed: %s\nCPU Time: %s\nMaxrss: %s", prettyCommand, elapsed.String(), cpuTime.String(), memoryUsage)
-	} else {
-		msg = fmt.Sprintf("Command `%s` FAILED. Status=%d.\nElapsed: %s\nCPU Time: %s\nMaxrss: %s", prettyCommand, exitCode, elapsed.String(), cpuTime.String(), memoryUsage)
 	}
+	msg := m.formatMessage(printedMarkerInfo{
+		memoryUsage: memoryUsage,
+		cpuTime:     cpuTime.String(),
+		elapsed:     elapsed.String(),
+		exitCode:    exitCode,
+	})
 
 	err = notifier.Notify(msg)
 	if err != nil {
