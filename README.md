@@ -8,6 +8,7 @@ Why stare at your laptop when you can go make yourself a coffee and have your co
 - Desktop notification
 - Discord notification through [Discord webhooks](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks)
 - Slack notification through [Slack workflow webhooks](https://slack.com/intl/en-gb/help/articles/360041352714-Create-workflows-that-start-with-a-webhook)
+- Custom webhook notification to any HTTP endpoint with configurable payloads and headers
 - [Planned] Mobile app notification through our mobile app
 
 Do open an issue if you're interested in a notification channel being implemented.
@@ -75,4 +76,12 @@ slack: # if missing, n-cli won't use Slack as a notification channel
   # must have "message" as a variable. sample payload to the webhook: { "message": "{{message}}" }
   webhookUrl: https://hooks.slack.com/triggers/ABCDEFG123/123456789/whateverstringishere # required
   messageFormat: "{{message}}" # optional
+
+custom: # if missing, n-cli won't use custom webhook as a notification channel
+  targetUrl: https://api.example.com/webhook # required - the webhook URL to call
+  payloadTemplate: '{"text": "{{message}}", "priority": "high"}' # required - template with {{message}} placeholder
+  method: POST # optional - HTTP method (default: POST), case-insensitive
+  headers: # optional - custom HTTP headers
+    Authorization: Bearer your-token-here
+    X-Custom-Header: custom-value
 ```

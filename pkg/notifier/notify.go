@@ -32,6 +32,9 @@ func Notify(msg string) error {
 	if cfg.Slack != nil {
 		notifierMap["slack"] = NewSlackNotifier()
 	}
+	if cfg.Custom != nil {
+		notifierMap["custom"] = NewCustomNotifier()
+	}
 	labels := make([]string, 0, len(notifierMap))
 	for label := range notifierMap {
 		labels = append(labels, label)
