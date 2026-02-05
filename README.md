@@ -15,7 +15,7 @@ Do open an issue if you're interested in a notification channel being implemente
 
 # 👨🏻‍💻 Installation
 
-Through `go install` (easiest if you have Go 1.21 installed):
+Through `go install` (easiest if you have Go 1.25+ installed):
 
 ```shell
 go install github.com/lba-studio/n-cli@latest
