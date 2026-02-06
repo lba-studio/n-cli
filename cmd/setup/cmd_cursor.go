@@ -128,13 +128,20 @@ func mergeHooksJSON(hooksJSONPath string) error {
 		}
 	}
 
+	// check version for compatibility with Cursor's hooks.json format
 	version, hasVersion := root["version"]
+	versionFloat, versionFloatOk := version.(float64)
+	versionInt := 0
+	if versionFloatOk {
+		version = int(versionFloat)
+	}
 	if !hasVersion {
-		root["version"] = float64(1)
-	} else if versionInt, ok := version.(int); !ok || versionInt > maxVersion {
+		root["version"] = 1
+	} else if versionInt > maxVersion {
+		fmt.Printf("versionInt=%d version=%f\n", versionInt, version)
 		// prompt user if they want to proceed anyways
 		overwrite, err := prompt.New().
-			Ask(fmt.Sprintf("Hooks.json version %d is not yet supported (please do log a GitHub Issue in our repo). Overwrite?", version)).
+			Ask(fmt.Sprintf("Hooks.json has a newer version %v, which is not yet officially supported (please do log a GitHub Issue in our repo). Proceed anyways?", version)).
 			Choose([]string{"Yes", "No"})
 		if err != nil {
 			return fmt.Errorf("prompt: %w", err)
@@ -143,12 +150,15 @@ func mergeHooksJSON(hooksJSONPath string) error {
 			return fmt.Errorf("hooks.json version %d is not supported", version)
 		}
 	}
+
+	// process hooks (either merge it or init it)
 	hooks, _ := root["hooks"].(map[string]interface{})
 	if hooks == nil {
 		hooks = make(map[string]interface{})
 		root["hooks"] = hooks
 	}
 
+	// merge the hooks for each event
 	for _, event := range []string{"stop", "sessionEnd"} {
 		merged := mergeHookEntry(hooks[event], hookCommand)
 		hooks[event] = merged
