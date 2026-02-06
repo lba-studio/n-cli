@@ -17,6 +17,7 @@ const (
 	hooksJSON      = "hooks.json"
 	hookScriptName = "n-cli-notify.sh"
 	hookCommand    = "./hooks/n-cli-notify.sh"
+	maxVersion     = 1 // ensures that hooks.json version changes do not break our integration
 )
 
 var hookScriptContent = `#!/bin/sh
@@ -118,25 +119,39 @@ func runSetupCursor(force bool) error {
 }
 
 func mergeHooksJSON(hooksJSONPath string) error {
-	var root struct {
-		Version int                    `json:"version"`
-		Hooks   map[string]interface{} `json:"hooks"`
-	}
-	root.Version = 1
-	root.Hooks = make(map[string]interface{})
+	root := make(map[string]interface{})
 
 	data, err := os.ReadFile(hooksJSONPath)
 	if err == nil {
 		if err := json.Unmarshal(data, &root); err != nil {
 			return fmt.Errorf("parse existing %s: %w", hooksJSONPath, err)
 		}
-		if root.Hooks == nil {
-			root.Hooks = make(map[string]interface{})
+	}
+
+	version, hasVersion := root["version"]
+	if !hasVersion {
+		root["version"] = float64(1)
+	} else if versionInt, ok := version.(int); !ok || versionInt > maxVersion {
+		// prompt user if they want to proceed anyways
+		overwrite, err := prompt.New().
+			Ask(fmt.Sprintf("Hooks.json version %d is not yet supported (please do log a GitHub Issue in our repo). Overwrite?", version)).
+			Choose([]string{"Yes", "No"})
+		if err != nil {
+			return fmt.Errorf("prompt: %w", err)
 		}
+		if overwrite != "Yes" {
+			return fmt.Errorf("hooks.json version %d is not supported", version)
+		}
+	}
+	hooks, _ := root["hooks"].(map[string]interface{})
+	if hooks == nil {
+		hooks = make(map[string]interface{})
+		root["hooks"] = hooks
 	}
 
 	for _, event := range []string{"stop", "sessionEnd"} {
-		root.Hooks[event] = mergeHookEntry(root.Hooks[event], hookCommand)
+		merged := mergeHookEntry(hooks[event], hookCommand)
+		hooks[event] = merged
 	}
 
 	out, err := json.MarshalIndent(root, "", "  ")
@@ -149,52 +164,21 @@ func mergeHooksJSON(hooksJSONPath string) error {
 	return nil
 }
 
-func mergeHookEntry(existing interface{}, command string) []map[string]string {
+func mergeHookEntry(existing interface{}, command string) []interface{} {
 	entry := map[string]string{"command": command}
-	var list []map[string]string
-	switch v := existing.(type) {
+	switch existingObject := existing.(type) {
 	case []interface{}:
-		for _, i := range v {
+		for _, i := range existingObject {
 			if m, ok := i.(map[string]interface{}); ok {
 				if c, _ := m["command"].(string); c == command {
-					return sliceFromInterface(v)
+					// then it exists, so we return the existing object
+					return existingObject
 				}
-				list = append(list, mapFromInterface(m))
 			}
 		}
-	case nil:
-	default:
-		if arr, ok := existing.([]map[string]string); ok {
-			for _, m := range arr {
-				if m["command"] == command {
-					return arr
-				}
-				list = append(list, m)
-			}
-		}
+		return append(existingObject, entry)
 	}
-	list = append(list, entry)
-	return list
-}
-
-func sliceFromInterface(s []interface{}) []map[string]string {
-	out := make([]map[string]string, 0, len(s))
-	for _, i := range s {
-		if m, ok := i.(map[string]interface{}); ok {
-			out = append(out, mapFromInterface(m))
-		}
-	}
-	return out
-}
-
-func mapFromInterface(m map[string]interface{}) map[string]string {
-	out := make(map[string]string)
-	for k, v := range m {
-		if s, ok := v.(string); ok {
-			out[k] = s
-		}
-	}
-	return out
+	return []interface{}{entry}
 }
 
 func printSuccess(hooksJSONPath, scriptPath string) {
