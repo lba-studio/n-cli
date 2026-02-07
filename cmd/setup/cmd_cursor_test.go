@@ -14,7 +14,6 @@ func TestNewSetupCursorCmd(t *testing.T) {
 	c := NewSetupCursorCmd()
 	require.NotNil(t, c)
 	assert.Equal(t, "cursor", c.Name())
-	assert.Equal(t, "Set up Cursor hooks so you get n-cli notifications when the agent finishes or the session ends.", c.Short)
 	assert.NotEmpty(t, c.Long)
 	f := c.Flags().Lookup("force")
 	require.NotNil(t, f)

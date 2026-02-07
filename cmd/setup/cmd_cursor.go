@@ -24,7 +24,7 @@ var hookScriptContent = `#!/bin/sh
 # n-cli Cursor hook: notifies via n-cli send --stdin when agent stops or session ends.
 # Receives JSON on stdin from Cursor (hook_event_name, status for stop, etc.).
 input=""
-while IFS= read -r line; do
+while IFS= read -r line || [ -n "$line" ]; do
   input="${input}${line}"
 done
 
@@ -39,7 +39,7 @@ case "$event" in
     msg="Session ended"
     ;;
   *)
-    msg="Cursor hook: ${event:-unknown}"
+    msg="Cursor hook: ${event:-unknown}\nFull payload: ${input:-no_input}"
     ;;
 esac
 
