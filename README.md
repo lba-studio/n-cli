@@ -1,10 +1,11 @@
 # ✉️ Notification CLI (n-cli) - Send notifications to yourself through the command line
 
-Why stare at your laptop when you can go make yourself a coffee and have your computer let you know when it's done compiling that monstrous 4GB monorepo?
+Why stare at your laptop when you can go make yourself a coffee and have your computer/agent let you know when it's done compiling that monstrous 4GB monorepo?
 
 # 🚀 Features
 
 - Works out-of-the-box - no need to go through any external service (other than your chat apps, of course)
+- Cursor Agent integration – get notifications when the Cursor Agent has finished doing its task (see [Cursor integration](#cursor-agents))
 - Desktop notification
 - Discord notification through [Discord webhooks](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks)
 - Slack notification through [Slack workflow webhooks](https://slack.com/intl/en-gb/help/articles/360041352714-Create-workflows-that-start-with-a-webhook)
@@ -15,7 +16,7 @@ Do open an issue if you're interested in a notification channel being implemente
 
 # 👨🏻‍💻 Installation
 
-Through `go install` (easiest if you have Go 1.21 installed):
+Through `go install` (easiest if you have Go 1.25+ installed):
 
 ```shell
 go install github.com/lba-studio/n-cli@latest
@@ -55,10 +56,23 @@ n-cli r -- make build --whatever-args-i-have-here
 alias n="n-cli s"
 make build; n Build is done;
 
+# integrations with LLM agents
+n-cli setup cursor # set up Cursor hooks so you get notified when the agent finishes or session ends
+
 # useful commands
 n-cli init # optional: initializes & configures n-cli without running anything
 n-cli where config # where is your config?
 n-cli version # get version
+```
+
+# 🔌 Integrations
+
+## Cursor Agent
+
+Get notifications when the Cursor Agent stops or when the session ends.
+
+```sh
+n-cli setup cursor # attaches n-cli to ~/.cursor/hooks.json
 ```
 
 # 📝 Configuration
