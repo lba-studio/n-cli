@@ -36,7 +36,7 @@ case "$event" in
     msg="Done: agent finished (status: ${status:-unknown})"
     ;;
   sessionEnd)
-    msg="Session ended"
+    exit 0 # we don't actually care about sessionEnd since the agent is just being closed by the user
     ;;
   *)
     msg="Cursor hook: ${event:-unknown}\nFull payload: ${input:-no_input}"
