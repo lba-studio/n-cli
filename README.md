@@ -5,7 +5,7 @@ Why stare at your laptop when you can go make yourself a coffee and have your co
 # 🚀 Features
 
 - Works out-of-the-box - no need to go through any external service (other than your chat apps, of course)
-- Cursor Agent integration – get notifications when the Cursor Agent has finished doing its task (see [Cursor integration](#cursor-agents))
+- Cursor Agent integration – get notifications when the Cursor Agent has finished doing its task (see [Cursor integration](#cursor-agent))
 - Desktop notification
 - Discord notification through [Discord webhooks](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks)
 - Slack notification through [Slack workflow webhooks](https://slack.com/intl/en-gb/help/articles/360041352714-Create-workflows-that-start-with-a-webhook)
