@@ -33,3 +33,19 @@ pkg/
 **Adding a new top-level command**: create `cmd/cmd_<name>.go`, define a `New<Name>Cmd() *cobra.Command` function, and register it in `cmd/root.go`'s `init()`.
 
 **Adding a new `setup` subcommand** (e.g. for a new agent integration): add a file in `cmd/setup/`, implement the setup logic there, and register it in `cmd/cmd_setup.go`'s `NewSetupCmd()`.
+
+## Releasing a New Version
+
+Use `release.sh` to bump the version, commit, tag, and push in one step:
+
+```sh
+./release.sh          # patch bump (default) — for bug fixes, refactors, etc.
+./release.sh minor    # minor bump — required when adding new commands or subcommands
+./release.sh patch    # patch bump — explicit form of the default
+```
+
+Semver rules:
+- **minor** — any new command or subcommand added
+- **patch** — everything else (fixes, refactors, dependency updates, docs)
+
+The script updates `pkg/version/get_version.go`, commits as `release vX.Y.Z`, creates a tag `vX.Y.Z`, and pushes both the commit and the tag to `origin`.
