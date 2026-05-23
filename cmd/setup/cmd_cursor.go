@@ -39,7 +39,7 @@ case "$event" in
     exit 0 # we don't actually care about sessionEnd since the agent is just being closed by the user
     ;;
   *)
-    msg="Cursor hook: ${event:-unknown}\nFull payload: ${input:-no_input}"
+    msg="Cursor hook: ${event:-unknown}"
     ;;
 esac
 
@@ -133,21 +133,19 @@ func mergeHooksJSON(hooksJSONPath string) error {
 	versionFloat, versionFloatOk := version.(float64)
 	versionInt := 0
 	if versionFloatOk {
-		version = int(versionFloat)
+		versionInt = int(versionFloat)
 	}
 	if !hasVersion {
 		root["version"] = 1
 	} else if versionInt > maxVersion {
-		fmt.Printf("versionInt=%d version=%f\n", versionInt, version)
-		// prompt user if they want to proceed anyways
 		overwrite, err := prompt.New().
-			Ask(fmt.Sprintf("Hooks.json has a newer version %v, which is not yet officially supported (please do log a GitHub Issue in our repo). Proceed anyways?", version)).
+			Ask(fmt.Sprintf("Hooks.json has a newer version %d, which is not yet officially supported (please do log a GitHub Issue in our repo). Proceed anyways?", versionInt)).
 			Choose([]string{"Yes", "No"})
 		if err != nil {
 			return fmt.Errorf("prompt: %w", err)
 		}
 		if overwrite != "Yes" {
-			return fmt.Errorf("hooks.json version %d is not supported", version)
+			return fmt.Errorf("hooks.json version %d is not supported", versionInt)
 		}
 	}
 
