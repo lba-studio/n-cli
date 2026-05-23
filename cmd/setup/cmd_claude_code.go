@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Claude Code hooks documentation: https://code.claude.com/docs/en/hooks
 const (
 	claudeCodeDir         = ".claude"
 	claudeCodeSettings    = "settings.json"

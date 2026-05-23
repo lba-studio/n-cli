@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Codex hooks documentation: https://developers.openai.com/codex/hooks
 const (
 	codexDir = ".codex"
 )
