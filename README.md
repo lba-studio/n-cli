@@ -57,8 +57,9 @@ alias n="n-cli s"
 make build; n Build is done;
 
 # integrations with LLM agents
-n-cli setup cursor # set up Cursor hooks so you get notified when the agent finishes or session ends
-n-cli setup codex  # set up Codex hooks so you get notified when the agent finishes or needs approval
+n-cli setup cursor       # set up Cursor hooks so you get notified when the agent finishes or session ends
+n-cli setup codex        # set up Codex hooks so you get notified when the agent finishes or needs approval
+n-cli setup claude-code  # set up Claude Code hooks so you get notified when the agent finishes or needs approval
 
 # useful commands
 n-cli init # optional: initializes & configures n-cli without running anything
@@ -85,6 +86,16 @@ n-cli setup codex # attaches n-cli to ~/.codex/hooks.json
 ```
 
 After setup, restart Codex and review/trust the hooks with `/hooks` if prompted. Ensure `n-cli` stays on your PATH in the shell environment Codex uses.
+
+## Claude Code
+
+Get notifications when the Claude Code agent finishes (`Stop`) or needs your approval (`Notification` with `permission_prompt`).
+
+```sh
+n-cli setup claude-code # attaches n-cli to ~/.claude/settings.json
+```
+
+After setup, restart Claude Code and review/trust the hooks with `/hooks` if prompted. Ensure `n-cli` stays on your PATH in the shell environment Claude Code uses.
 
 # 📝 Configuration
 
