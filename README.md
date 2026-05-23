@@ -5,7 +5,7 @@ Why stare at your laptop when you can go make yourself a coffee and have your co
 # 🚀 Features
 
 - Works out-of-the-box - no need to go through any external service (other than your chat apps, of course)
-- Coding agent integration – get notifications when [Cursor](#cursor-agent) or [Codex](#codex) finishes its work or needs your approval
+- Coding agent integration – get notifications when [Cursor](#cursor-agent), [Codex](#codex), or [Claude Code](#claude-code) finishes its work or needs your approval
 - Desktop notification
 - Discord notification through [Discord webhooks](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks)
 - Slack notification through [Slack workflow webhooks](https://slack.com/intl/en-gb/help/articles/360041352714-Create-workflows-that-start-with-a-webhook)
