@@ -8,8 +8,9 @@ import (
 func NewSetupCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "setup",
-		Short: "Set up integrations (e.g. Cursor hooks).",
+		Short: "Set up integrations (e.g. Cursor and Codex hooks).",
 	}
 	c.AddCommand(setup.NewSetupCursorCmd())
+	c.AddCommand(setup.NewSetupCodexCmd())
 	return c
 }

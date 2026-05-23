@@ -5,7 +5,11 @@ Why stare at your laptop when you can go make yourself a coffee and have your co
 # 🚀 Features
 
 - Works out-of-the-box - no need to go through any external service (other than your chat apps, of course)
+<<<<<<< Updated upstream
 - Cursor Agent integration – get notifications when the Cursor Agent has finished doing its task (see [Cursor integration](#cursor-agent))
+=======
+- Coding agent integration – get notifications when [Cursor](#cursor-agent) or [Codex](#codex) finishes its work or needs your approval
+>>>>>>> Stashed changes
 - Desktop notification
 - Discord notification through [Discord webhooks](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks)
 - Slack notification through [Slack workflow webhooks](https://slack.com/intl/en-gb/help/articles/360041352714-Create-workflows-that-start-with-a-webhook)
@@ -58,6 +62,7 @@ make build; n Build is done;
 
 # integrations with LLM agents
 n-cli setup cursor # set up Cursor hooks so you get notified when the agent finishes or session ends
+n-cli setup codex  # set up Codex hooks so you get notified when the agent finishes or needs approval
 
 # useful commands
 n-cli init # optional: initializes & configures n-cli without running anything
@@ -74,6 +79,16 @@ Get notifications when the Cursor Agent stops or when the session ends.
 ```sh
 n-cli setup cursor # attaches n-cli to ~/.cursor/hooks.json
 ```
+
+## Codex
+
+Get notifications when Codex finishes a turn (`Stop`) or is waiting for your approval (`PermissionRequest`).
+
+```sh
+n-cli setup codex # attaches n-cli to ~/.codex/hooks.json
+```
+
+After setup, restart Codex and review/trust the hooks with `/hooks` if prompted. Ensure `n-cli` stays on your PATH in the shell environment Codex uses.
 
 # 📝 Configuration
 
