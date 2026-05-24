@@ -102,6 +102,9 @@ After setup, restart Claude Code and review/trust the hooks with `/hooks` if pro
 Default config is at `~/.n-cli/config.yaml`
 
 ```yaml
+system: # optional - controls desktop/system notifications
+  disabled: true # if true, n-cli won't send system notifications
+
 discord: # if missing, n-cli won't use Discord as a notification channel
   # https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks
   webhookUrl: https://discord.com/api/webhooks/{yourwebhookurlhere} # required

@@ -16,9 +16,14 @@ type CustomConfig struct {
 	Headers         map[string]string `mapstructure:"headers"`
 }
 
+type SystemConfig struct {
+	Disabled bool `mapstructure:"disabled"`
+}
+
 // Config struct to hold the configuration values
 type Config struct {
 	Discord *DiscordConfig `mapstructure:"discord"`
 	Slack   *SlackConfig   `mapstructure:"slack"`
 	Custom  *CustomConfig  `mapstructure:"custom"`
+	System  *SystemConfig  `mapstructure:"system"`
 }

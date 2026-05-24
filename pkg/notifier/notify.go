@@ -23,8 +23,9 @@ func Notify(msg string) error {
 		return err
 	}
 
-	notifierMap := map[string]Notifier{
-		"system": NewSystemNotifier(),
+	notifierMap := map[string]Notifier{}
+	if cfg.System == nil || !cfg.System.Disabled {
+		notifierMap["system"] = NewSystemNotifier()
 	}
 	if cfg.Discord != nil {
 		notifierMap["discord"] = NewDiscordNotifier()
