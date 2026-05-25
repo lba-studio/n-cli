@@ -15,9 +15,13 @@ func TestNewSetupCursorCmd(t *testing.T) {
 	require.NotNil(t, c)
 	assert.Equal(t, "cursor", c.Name())
 	assert.NotEmpty(t, c.Long)
-	f := c.Flags().Lookup("force")
-	require.NotNil(t, f)
-	assert.Equal(t, "false", f.DefValue)
+}
+
+func TestIsOldShellHook(t *testing.T) {
+	assert.True(t, isOldShellHook("./hooks/n-cli-notify.sh"))
+	assert.True(t, isOldShellHook("/home/user/.cursor/hooks/n-cli-notify.sh"))
+	assert.False(t, isOldShellHook("other-script.sh"))
+	assert.False(t, isOldShellHook("n-cli hook cursor"))
 }
 
 func TestMergeHookEntry(t *testing.T) {
@@ -53,7 +57,7 @@ func TestMergeHookEntry(t *testing.T) {
 		{
 			name: "slice without our command",
 			existing: []interface{}{
-				map[string]interface{}{"command": "other-script.sh"},
+				map[string]interface{}{"command": "other-hook"},
 			},
 			command:  cmd,
 			wantLen:  2,
@@ -71,12 +75,31 @@ func TestMergeHookEntry(t *testing.T) {
 		{
 			name: "slice with our command and others",
 			existing: []interface{}{
-				map[string]interface{}{"command": "other.sh"},
+				map[string]interface{}{"command": "other-hook"},
 				map[string]interface{}{"command": cmd},
 			},
 			command:  cmd,
 			wantLen:  2,
 			wantSame: true,
+		},
+		{
+			name: "replaces old shell hook",
+			existing: []interface{}{
+				map[string]interface{}{"command": "./hooks/n-cli-notify.sh"},
+			},
+			command:  cmd,
+			wantLen:  1,
+			wantSame: false,
+		},
+		{
+			name: "replaces old shell hook and keeps other hooks",
+			existing: []interface{}{
+				map[string]interface{}{"command": "./hooks/n-cli-notify.sh"},
+				map[string]interface{}{"command": "other-hook"},
+			},
+			command:  cmd,
+			wantLen:  2,
+			wantSame: false,
 		},
 	}
 	for _, tt := range tests {
@@ -85,26 +108,16 @@ func TestMergeHookEntry(t *testing.T) {
 			assert.Len(t, got, tt.wantLen)
 			var hasCommand bool
 			for _, e := range got {
-				if m, ok := e.(map[string]interface{}); ok {
-					if c, _ := m["command"].(string); c == tt.command {
-						hasCommand = true
-						break
-					}
-				}
-				if m, ok := e.(map[string]string); ok {
-					if m["command"] == tt.command {
-						hasCommand = true
-						break
-					}
+				if hookEntryCommand(e) == tt.command {
+					hasCommand = true
+					break
 				}
 			}
 			if tt.wantLen >= 1 {
 				assert.True(t, hasCommand, "result should contain command %q", tt.command)
 			}
-			if tt.wantSame && tt.existing != nil {
-				if existingSlice, ok := tt.existing.([]interface{}); ok {
-					assert.Same(t, &existingSlice[0], &got[0])
-				}
+			for _, e := range got {
+				assert.False(t, isOldShellHook(hookEntryCommand(e)))
 			}
 		})
 	}
@@ -158,7 +171,7 @@ func TestMergeHooksJSON_ExistingWithHooksNoVersion(t *testing.T) {
 	path := filepath.Join(dir, "hooks.json")
 	existing := map[string]interface{}{
 		"hooks": map[string]interface{}{
-			"stop": []interface{}{map[string]interface{}{"command": "existing.sh"}},
+			"stop": []interface{}{map[string]interface{}{"command": "existing-hook"}},
 		},
 	}
 	raw, _ := json.Marshal(existing)
@@ -175,11 +188,35 @@ func TestMergeHooksJSON_ExistingWithHooksNoVersion(t *testing.T) {
 	hooks := root["hooks"].(map[string]interface{})
 	stopEntries := hooks["stop"].([]interface{})
 	require.Len(t, stopEntries, 2)
-	assert.Equal(t, "existing.sh", stopEntries[0].(map[string]interface{})["command"])
+	assert.Equal(t, "existing-hook", stopEntries[0].(map[string]interface{})["command"])
 	assert.Equal(t, hookCommand, stopEntries[1].(map[string]interface{})["command"])
 	sessionEndEntries := hooks["sessionEnd"].([]interface{})
 	require.Len(t, sessionEndEntries, 1)
 	assert.Equal(t, hookCommand, sessionEndEntries[0].(map[string]interface{})["command"])
+}
+
+func TestMergeHooksJSON_ReplacesOldShellHook(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "hooks.json")
+	existing := map[string]interface{}{
+		"hooks": map[string]interface{}{
+			"stop": []interface{}{map[string]interface{}{"command": "./hooks/n-cli-notify.sh"}},
+		},
+	}
+	raw, _ := json.Marshal(existing)
+	require.NoError(t, os.WriteFile(path, raw, 0644))
+
+	err := mergeHooksJSON(path)
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	var root map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &root))
+	hooks := root["hooks"].(map[string]interface{})
+	stopEntries := hooks["stop"].([]interface{})
+	require.Len(t, stopEntries, 1)
+	assert.Equal(t, hookCommand, stopEntries[0].(map[string]interface{})["command"])
 }
 
 func TestMergeHooksJSON_InvalidJSON(t *testing.T) {

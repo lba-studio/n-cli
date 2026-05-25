@@ -15,13 +15,10 @@ func TestNewSetupClaudeCodeCmd(t *testing.T) {
 	require.NotNil(t, c)
 	assert.Equal(t, "claude-code", c.Name())
 	assert.NotEmpty(t, c.Long)
-	f := c.Flags().Lookup("force")
-	require.NotNil(t, f)
-	assert.Equal(t, "false", f.DefValue)
 }
 
 func TestMergeClaudeCodeHookEvent(t *testing.T) {
-	cmd := "/home/user/.claude/hooks/n-cli-notify.sh"
+	cmd := claudeCodeHookCommand
 	tests := []struct {
 		name     string
 		existing interface{}
@@ -54,7 +51,7 @@ func TestMergeClaudeCodeHookEvent(t *testing.T) {
 					"hooks": []interface{}{
 						map[string]interface{}{
 							"type":    "command",
-							"command": "other-script.sh",
+							"command": "other-hook",
 						},
 					},
 				},
@@ -117,6 +114,24 @@ func TestMergeClaudeCodeHookEvent(t *testing.T) {
 			wantLen:  1,
 			wantSame: true,
 		},
+		{
+			name: "replaces old shell hook",
+			existing: []interface{}{
+				map[string]interface{}{
+					"matcher": "permission_prompt",
+					"hooks": []interface{}{
+						map[string]interface{}{
+							"type":    "command",
+							"command": "/home/user/.claude/hooks/n-cli-notify.sh",
+						},
+					},
+				},
+			},
+			command:  cmd,
+			matcher:  "permission_prompt",
+			wantLen:  1,
+			wantSame: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -143,11 +158,6 @@ func TestMergeClaudeCodeHookEvent(t *testing.T) {
 			}
 			if tt.wantLen >= 1 {
 				assert.True(t, hasCommand, "result should contain command %q", tt.command)
-			}
-			if tt.wantSame && tt.existing != nil {
-				if existingSlice, ok := tt.existing.([]interface{}); ok {
-					assert.Same(t, &existingSlice[0], &got[0])
-				}
 			}
 		})
 	}
@@ -184,9 +194,8 @@ func assertClaudeCodeHookEvent(t *testing.T, hooks map[string]interface{}, event
 func TestMergeClaudeCodeSettings_NoExistingFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, claudeCodeSettings)
-	command := filepath.Join(dir, "hooks", hookScriptName)
 
-	err := mergeClaudeCodeSettings(path, command)
+	err := mergeClaudeCodeSettings(path, claudeCodeHookCommand)
 	require.NoError(t, err)
 
 	data, err := os.ReadFile(path)
@@ -195,14 +204,13 @@ func TestMergeClaudeCodeSettings_NoExistingFile(t *testing.T) {
 	require.NoError(t, json.Unmarshal(data, &root))
 	hooks, ok := root["hooks"].(map[string]interface{})
 	require.True(t, ok)
-	assertClaudeCodeHookEvent(t, hooks, claudeCodeStopEvent, command, "")
-	assertClaudeCodeHookEvent(t, hooks, claudeCodeNotifyEvent, command, "permission_prompt")
+	assertClaudeCodeHookEvent(t, hooks, claudeCodeStopEvent, claudeCodeHookCommand, "")
+	assertClaudeCodeHookEvent(t, hooks, claudeCodeNotifyEvent, claudeCodeHookCommand, "permission_prompt")
 }
 
 func TestMergeClaudeCodeSettings_PreservesOtherSettings(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, claudeCodeSettings)
-	command := filepath.Join(dir, "hooks", hookScriptName)
 	existing := map[string]interface{}{
 		"permissions": map[string]interface{}{
 			"defaultMode": "default",
@@ -211,7 +219,7 @@ func TestMergeClaudeCodeSettings_PreservesOtherSettings(t *testing.T) {
 	raw, _ := json.Marshal(existing)
 	require.NoError(t, os.WriteFile(path, raw, 0644))
 
-	err := mergeClaudeCodeSettings(path, command)
+	err := mergeClaudeCodeSettings(path, claudeCodeHookCommand)
 	require.NoError(t, err)
 
 	data, err := os.ReadFile(path)
@@ -223,8 +231,42 @@ func TestMergeClaudeCodeSettings_PreservesOtherSettings(t *testing.T) {
 	assert.Equal(t, "default", permissions["defaultMode"])
 	hooks, ok := root["hooks"].(map[string]interface{})
 	require.True(t, ok)
-	assertClaudeCodeHookEvent(t, hooks, claudeCodeStopEvent, command, "")
-	assertClaudeCodeHookEvent(t, hooks, claudeCodeNotifyEvent, command, "permission_prompt")
+	assertClaudeCodeHookEvent(t, hooks, claudeCodeStopEvent, claudeCodeHookCommand, "")
+	assertClaudeCodeHookEvent(t, hooks, claudeCodeNotifyEvent, claudeCodeHookCommand, "permission_prompt")
+}
+
+func TestMergeClaudeCodeSettings_ReplacesOldShellHook(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, claudeCodeSettings)
+	existing := map[string]interface{}{
+		"hooks": map[string]interface{}{
+			claudeCodeStopEvent: []interface{}{
+				map[string]interface{}{
+					"hooks": []interface{}{
+						map[string]interface{}{
+							"type":    "command",
+							"command": "/home/user/.claude/hooks/n-cli-notify.sh",
+						},
+					},
+				},
+			},
+		},
+	}
+	raw, _ := json.Marshal(existing)
+	require.NoError(t, os.WriteFile(path, raw, 0644))
+
+	err := mergeClaudeCodeSettings(path, claudeCodeHookCommand)
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	var root map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &root))
+	hooks := root["hooks"].(map[string]interface{})
+	stopEntries := hooks[claudeCodeStopEvent].([]interface{})
+	require.Len(t, stopEntries, 1)
+	assertClaudeCodeHookEvent(t, hooks, claudeCodeStopEvent, claudeCodeHookCommand, "")
+	assertClaudeCodeHookEvent(t, hooks, claudeCodeNotifyEvent, claudeCodeHookCommand, "permission_prompt")
 }
 
 func TestMergeClaudeCodeSettings_InvalidJSON(t *testing.T) {
@@ -232,7 +274,7 @@ func TestMergeClaudeCodeSettings_InvalidJSON(t *testing.T) {
 	path := filepath.Join(dir, claudeCodeSettings)
 	require.NoError(t, os.WriteFile(path, []byte("not json"), 0644))
 
-	err := mergeClaudeCodeSettings(path, "/tmp/n-cli-notify.sh")
+	err := mergeClaudeCodeSettings(path, claudeCodeHookCommand)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "parse existing")
 }
@@ -240,10 +282,9 @@ func TestMergeClaudeCodeSettings_InvalidJSON(t *testing.T) {
 func TestMergeClaudeCodeSettings_SecondCallPreservesHooks(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, claudeCodeSettings)
-	command := filepath.Join(dir, "hooks", hookScriptName)
 	require.NoError(t, os.WriteFile(path, []byte(`{"hooks":{}}`), 0644))
 
-	require.NoError(t, mergeClaudeCodeSettings(path, command))
+	require.NoError(t, mergeClaudeCodeSettings(path, claudeCodeHookCommand))
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)
 	var root map[string]interface{}
@@ -252,13 +293,13 @@ func TestMergeClaudeCodeSettings_SecondCallPreservesHooks(t *testing.T) {
 	stopEntries := hooks[claudeCodeStopEvent].([]interface{})
 	require.Len(t, stopEntries, 1)
 
-	require.NoError(t, mergeClaudeCodeSettings(path, command))
+	require.NoError(t, mergeClaudeCodeSettings(path, claudeCodeHookCommand))
 	data, err = os.ReadFile(path)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(data, &root))
 	hooks = root["hooks"].(map[string]interface{})
 	stopEntries = hooks[claudeCodeStopEvent].([]interface{})
 	require.Len(t, stopEntries, 1)
-	assertClaudeCodeHookEvent(t, hooks, claudeCodeStopEvent, command, "")
-	assertClaudeCodeHookEvent(t, hooks, claudeCodeNotifyEvent, command, "permission_prompt")
+	assertClaudeCodeHookEvent(t, hooks, claudeCodeStopEvent, claudeCodeHookCommand, "")
+	assertClaudeCodeHookEvent(t, hooks, claudeCodeNotifyEvent, claudeCodeHookCommand, "permission_prompt")
 }

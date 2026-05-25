@@ -36,6 +36,7 @@ func init() {
 		NewVersionCmd(),
 		NewRunCmd(),
 		NewSetupCmd(),
+		NewHookCmd(),
 	)
 }
 

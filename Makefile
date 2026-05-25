@@ -13,3 +13,9 @@ test_version:
 
 build:
 	go build -v .
+
+install_remote:
+	go install github.com/lba-studio/n-cli@latest
+
+install:
+	go install .

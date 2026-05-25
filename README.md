@@ -74,7 +74,7 @@ n-cli version # get version
 Get notifications when the Cursor Agent stops or when the session ends.
 
 ```sh
-n-cli setup cursor # attaches n-cli to ~/.cursor/hooks.json
+n-cli setup cursor # registers n-cli hook cursor in ~/.cursor/hooks.json
 ```
 
 ## Codex
@@ -82,7 +82,7 @@ n-cli setup cursor # attaches n-cli to ~/.cursor/hooks.json
 Get notifications when Codex finishes a turn (`Stop`) or is waiting for your approval (`PermissionRequest`).
 
 ```sh
-n-cli setup codex # attaches n-cli to ~/.codex/hooks.json
+n-cli setup codex # registers n-cli hook codex in ~/.codex/hooks.json
 ```
 
 After setup, restart Codex and review/trust the hooks with `/hooks` if prompted. Ensure `n-cli` stays on your PATH in the shell environment Codex uses.
@@ -92,7 +92,7 @@ After setup, restart Codex and review/trust the hooks with `/hooks` if prompted.
 Get notifications when the Claude Code agent finishes (`Stop`) or needs your approval (`Notification` with `permission_prompt`).
 
 ```sh
-n-cli setup claude-code # attaches n-cli to ~/.claude/settings.json
+n-cli setup claude-code # registers n-cli hook claude-code in ~/.claude/settings.json
 ```
 
 After setup, restart Claude Code and review/trust the hooks with `/hooks` if prompted. Ensure `n-cli` stays on your PATH in the shell environment Claude Code uses.

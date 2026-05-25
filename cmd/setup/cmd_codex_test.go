@@ -15,13 +15,10 @@ func TestNewSetupCodexCmd(t *testing.T) {
 	require.NotNil(t, c)
 	assert.Equal(t, "codex", c.Name())
 	assert.NotEmpty(t, c.Long)
-	f := c.Flags().Lookup("force")
-	require.NotNil(t, f)
-	assert.Equal(t, "false", f.DefValue)
 }
 
 func TestMergeCodexHookEvent(t *testing.T) {
-	cmd := "/home/user/.codex/hooks/n-cli-notify.sh"
+	cmd := codexHookCommand
 	tests := []struct {
 		name     string
 		existing interface{}
@@ -57,7 +54,7 @@ func TestMergeCodexHookEvent(t *testing.T) {
 					"hooks": []interface{}{
 						map[string]interface{}{
 							"type":    "command",
-							"command": "other-script.sh",
+							"command": "other-hook",
 						},
 					},
 				},
@@ -89,7 +86,7 @@ func TestMergeCodexHookEvent(t *testing.T) {
 					"hooks": []interface{}{
 						map[string]interface{}{
 							"type":    "command",
-							"command": "other.sh",
+							"command": "other-hook",
 						},
 					},
 				},
@@ -105,6 +102,22 @@ func TestMergeCodexHookEvent(t *testing.T) {
 			command:  cmd,
 			wantLen:  2,
 			wantSame: true,
+		},
+		{
+			name: "replaces old shell hook",
+			existing: []interface{}{
+				map[string]interface{}{
+					"hooks": []interface{}{
+						map[string]interface{}{
+							"type":    "command",
+							"command": "/home/user/.codex/hooks/n-cli-notify.sh",
+						},
+					},
+				},
+			},
+			command:  cmd,
+			wantLen:  1,
+			wantSame: false,
 		},
 	}
 	for _, tt := range tests {
@@ -129,11 +142,6 @@ func TestMergeCodexHookEvent(t *testing.T) {
 			}
 			if tt.wantLen >= 1 {
 				assert.True(t, hasCommand, "result should contain command %q", tt.command)
-			}
-			if tt.wantSame && tt.existing != nil {
-				if existingSlice, ok := tt.existing.([]interface{}); ok {
-					assert.Same(t, &existingSlice[0], &got[0])
-				}
 			}
 		})
 	}
@@ -167,9 +175,8 @@ func assertCodexHookEvent(t *testing.T, hooks map[string]interface{}, event, com
 func TestMergeCodexHooksJSON_NoExistingFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "hooks.json")
-	command := filepath.Join(dir, "hooks", "n-cli-notify.sh")
 
-	err := mergeCodexHooksJSON(path, command)
+	err := mergeCodexHooksJSON(path, codexHookCommand)
 	require.NoError(t, err)
 
 	data, err := os.ReadFile(path)
@@ -179,17 +186,16 @@ func TestMergeCodexHooksJSON_NoExistingFile(t *testing.T) {
 	hooks, ok := root["hooks"].(map[string]interface{})
 	require.True(t, ok)
 	for _, event := range codexHookEvents {
-		assertCodexHookEvent(t, hooks, event, command)
+		assertCodexHookEvent(t, hooks, event, codexHookCommand)
 	}
 }
 
 func TestMergeCodexHooksJSON_ExistingEmptyObject(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "hooks.json")
-	command := filepath.Join(dir, "hooks", "n-cli-notify.sh")
 	require.NoError(t, os.WriteFile(path, []byte("{}"), 0644))
 
-	err := mergeCodexHooksJSON(path, command)
+	err := mergeCodexHooksJSON(path, codexHookCommand)
 	require.NoError(t, err)
 
 	data, err := os.ReadFile(path)
@@ -199,14 +205,13 @@ func TestMergeCodexHooksJSON_ExistingEmptyObject(t *testing.T) {
 	hooks, ok := root["hooks"].(map[string]interface{})
 	require.True(t, ok)
 	for _, event := range codexHookEvents {
-		assertCodexHookEvent(t, hooks, event, command)
+		assertCodexHookEvent(t, hooks, event, codexHookCommand)
 	}
 }
 
 func TestMergeCodexHooksJSON_ExistingWithHooks(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "hooks.json")
-	command := filepath.Join(dir, "hooks", "n-cli-notify.sh")
 	existing := map[string]interface{}{
 		"hooks": map[string]interface{}{
 			"Stop": []interface{}{
@@ -214,7 +219,7 @@ func TestMergeCodexHooksJSON_ExistingWithHooks(t *testing.T) {
 					"hooks": []interface{}{
 						map[string]interface{}{
 							"type":    "command",
-							"command": "existing.sh",
+							"command": "existing-hook",
 						},
 					},
 				},
@@ -224,7 +229,7 @@ func TestMergeCodexHooksJSON_ExistingWithHooks(t *testing.T) {
 	raw, _ := json.Marshal(existing)
 	require.NoError(t, os.WriteFile(path, raw, 0644))
 
-	err := mergeCodexHooksJSON(path, command)
+	err := mergeCodexHooksJSON(path, codexHookCommand)
 	require.NoError(t, err)
 
 	data, err := os.ReadFile(path)
@@ -234,9 +239,42 @@ func TestMergeCodexHooksJSON_ExistingWithHooks(t *testing.T) {
 	hooks := root["hooks"].(map[string]interface{})
 	stopEntries := hooks["Stop"].([]interface{})
 	require.Len(t, stopEntries, 2)
-	assert.Equal(t, "existing.sh", stopEntries[0].(map[string]interface{})["hooks"].([]interface{})[0].(map[string]interface{})["command"])
-	assertCodexHookEvent(t, hooks, "Stop", command)
-	assertCodexHookEvent(t, hooks, "PermissionRequest", command)
+	assert.Equal(t, "existing-hook", stopEntries[0].(map[string]interface{})["hooks"].([]interface{})[0].(map[string]interface{})["command"])
+	assertCodexHookEvent(t, hooks, "Stop", codexHookCommand)
+	assertCodexHookEvent(t, hooks, "PermissionRequest", codexHookCommand)
+}
+
+func TestMergeCodexHooksJSON_ReplacesOldShellHook(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "hooks.json")
+	existing := map[string]interface{}{
+		"hooks": map[string]interface{}{
+			"Stop": []interface{}{
+				map[string]interface{}{
+					"hooks": []interface{}{
+						map[string]interface{}{
+							"type":    "command",
+							"command": "/home/user/.codex/hooks/n-cli-notify.sh",
+						},
+					},
+				},
+			},
+		},
+	}
+	raw, _ := json.Marshal(existing)
+	require.NoError(t, os.WriteFile(path, raw, 0644))
+
+	err := mergeCodexHooksJSON(path, codexHookCommand)
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	var root map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &root))
+	hooks := root["hooks"].(map[string]interface{})
+	stopEntries := hooks["Stop"].([]interface{})
+	require.Len(t, stopEntries, 1)
+	assertCodexHookEvent(t, hooks, "Stop", codexHookCommand)
 }
 
 func TestMergeCodexHooksJSON_InvalidJSON(t *testing.T) {
@@ -244,7 +282,7 @@ func TestMergeCodexHooksJSON_InvalidJSON(t *testing.T) {
 	path := filepath.Join(dir, "hooks.json")
 	require.NoError(t, os.WriteFile(path, []byte("not json"), 0644))
 
-	err := mergeCodexHooksJSON(path, "/tmp/n-cli-notify.sh")
+	err := mergeCodexHooksJSON(path, codexHookCommand)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "parse existing")
 }
@@ -252,10 +290,9 @@ func TestMergeCodexHooksJSON_InvalidJSON(t *testing.T) {
 func TestMergeCodexHooksJSON_SecondCallPreservesHooks(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "hooks.json")
-	command := filepath.Join(dir, "hooks", "n-cli-notify.sh")
 	require.NoError(t, os.WriteFile(path, []byte(`{"hooks":{}}`), 0644))
 
-	require.NoError(t, mergeCodexHooksJSON(path, command))
+	require.NoError(t, mergeCodexHooksJSON(path, codexHookCommand))
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)
 	var root map[string]interface{}
@@ -264,13 +301,13 @@ func TestMergeCodexHooksJSON_SecondCallPreservesHooks(t *testing.T) {
 	stopEntries := hooks["Stop"].([]interface{})
 	require.Len(t, stopEntries, 1)
 
-	require.NoError(t, mergeCodexHooksJSON(path, command))
+	require.NoError(t, mergeCodexHooksJSON(path, codexHookCommand))
 	data, err = os.ReadFile(path)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(data, &root))
 	hooks = root["hooks"].(map[string]interface{})
 	stopEntries = hooks["Stop"].([]interface{})
 	require.Len(t, stopEntries, 1)
-	assertCodexHookEvent(t, hooks, "Stop", command)
-	assertCodexHookEvent(t, hooks, "PermissionRequest", command)
+	assertCodexHookEvent(t, hooks, "Stop", codexHookCommand)
+	assertCodexHookEvent(t, hooks, "PermissionRequest", codexHookCommand)
 }

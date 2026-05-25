@@ -15,6 +15,7 @@ For the full list of commands and configuration options, see `README.md`.
 ```
 cmd/            # Cobra command definitions — one file per top-level command
   setup/        # Subcommands for agent integrations (Cursor, Codex, Claude Code)
+  hook/         # Subcommands for processing LLM agent hook events (Cursor, Codex, Claude Code)
   where/        # Subcommands for the `where` command
 internal/
   config/       # Config loading and initialisation (viper-based, ~/.n-cli/config.yaml)
@@ -33,6 +34,8 @@ pkg/
 **Adding a new top-level command**: create `cmd/cmd_<name>.go`, define a `New<Name>Cmd() *cobra.Command` function, and register it in `cmd/root.go`'s `init()`.
 
 **Adding a new `setup` subcommand** (e.g. for a new agent integration): add a file in `cmd/setup/`, implement the setup logic there, and register it in `cmd/cmd_setup.go`'s `NewSetupCmd()`.
+
+**Adding a new `hook` subcommand** (e.g. for a new agent integration): add a file in `cmd/hook/`, implement the hook handler there, and register it in `cmd/cmd_hook.go`'s `NewHookCmd()`.
 
 ## Releasing a New Version
 
