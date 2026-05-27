@@ -57,7 +57,7 @@ func initConfig() {
 
 	if err := viper.ReadInConfig(); err != nil {
 		// fmt.Println("Using config file:", viper.ConfigFileUsed())
-		fmt.Printf("WARN: Cannot read config: %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "WARN: Cannot read config: %s\n", err.Error())
 	}
 }
 

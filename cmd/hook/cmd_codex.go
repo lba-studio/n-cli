@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -22,28 +21,39 @@ func NewHookCodexCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			data, err := io.ReadAll(cmd.InOrStdin())
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "n-cli hook error: read stdin: %s\n", err)
+				fmt.Fprintf(cmd.ErrOrStderr(), "n-cli hook error: read stdin: %s\n", err)
 				return
 			}
-			if err := HandleHookCodex(data); err != nil {
-				fmt.Fprintf(os.Stderr, "n-cli hook error: %s\n", err)
+			output, err := HandleHookCodex(data)
+			if len(output) > 0 {
+				if _, writeErr := cmd.OutOrStdout().Write(output); writeErr != nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "n-cli hook error: write output: %s\n", writeErr)
+				}
+			}
+			if err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "n-cli hook error: %s\n", err)
 			}
 		},
 	}
 }
 
-func HandleHookCodex(data []byte) error {
+func HandleHookCodex(data []byte) ([]byte, error) {
 	var payload codexHookPayload
 	if err := json.Unmarshal(data, &payload); err != nil {
-		return fmt.Errorf("parse hook JSON: %w", err)
+		return nil, fmt.Errorf("parse hook JSON: %w", err)
+	}
+
+	var output []byte
+	if payload.HookEventName == "Stop" {
+		output = []byte("{\"continue\":true}\n")
 	}
 
 	msg := FormatCodexMessage(payload)
 	if msg == "" {
-		return nil
+		return output, nil
 	}
 
-	return notify(msg)
+	return output, notify(msg)
 }
 
 func FormatCodexMessage(payload codexHookPayload) string {

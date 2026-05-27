@@ -1,6 +1,9 @@
 package hook
 
 import (
+	"bytes"
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -97,7 +100,7 @@ func TestHandleHookCodex(t *testing.T) {
 				return nil
 			}
 
-			err := HandleHookCodex(tt.data)
+			_, err := HandleHookCodex(tt.data)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
@@ -108,6 +111,68 @@ func TestHandleHookCodex(t *testing.T) {
 				assert.Equal(t, tt.wantMsg, gotMsg)
 			} else {
 				assert.Empty(t, gotMsg)
+			}
+		})
+	}
+}
+
+func TestHookCodexCommandOutput(t *testing.T) {
+	originalNotify := notify
+	t.Cleanup(func() {
+		notify = originalNotify
+	})
+
+	tests := []struct {
+		name       string
+		input      string
+		wantMsg    string
+		wantStdout string
+		notifyErr  error
+		wantStderr string
+	}{
+		{
+			name:       "stop writes valid JSON",
+			input:      `{"hook_event_name":"Stop"}`,
+			wantMsg:    "Codex agent finished",
+			wantStdout: `{"continue":true}`,
+		},
+		{
+			name:       "stop writes valid JSON when notification fails",
+			input:      `{"hook_event_name":"Stop"}`,
+			wantMsg:    "Codex agent finished",
+			wantStdout: `{"continue":true}`,
+			notifyErr:  errors.New("boom"),
+			wantStderr: "n-cli hook error: boom\n",
+		},
+		{
+			name:    "permission request writes no stdout",
+			input:   `{"hook_event_name":"PermissionRequest","tool_name":"shell"}`,
+			wantMsg: "Codex needs approval for: shell",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotMsg string
+			notify = func(msg string) error {
+				gotMsg = msg
+				return tt.notifyErr
+			}
+
+			cmd := NewHookCodexCmd()
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+			cmd.SetIn(strings.NewReader(tt.input))
+			cmd.SetOut(&stdout)
+			cmd.SetErr(&stderr)
+
+			require.NoError(t, cmd.Execute())
+			assert.Equal(t, tt.wantStderr, stderr.String())
+			assert.Equal(t, tt.wantMsg, gotMsg)
+			if tt.wantStdout == "" {
+				assert.Empty(t, stdout.String())
+			} else {
+				assert.JSONEq(t, tt.wantStdout, stdout.String())
 			}
 		})
 	}

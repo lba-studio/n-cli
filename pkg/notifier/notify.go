@@ -3,6 +3,8 @@ package notifier
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +17,10 @@ type Notifier interface {
 }
 
 func Notify(msg string) error {
+	return NotifyTo(msg, os.Stdout)
+}
+
+func NotifyTo(msg string, output io.Writer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -41,7 +47,7 @@ func Notify(msg string) error {
 		labels = append(labels, label)
 	}
 
-	fmt.Printf("Sending notification to %d channels: %s\n", len(notifierMap), strings.Join(labels, ", "))
+	fmt.Fprintf(output, "Sending notification to %d channels: %s\n", len(notifierMap), strings.Join(labels, ", "))
 
 	erroredNotifiers := make([]string, 0, len(notifierMap))
 	wg := sync.WaitGroup{}
@@ -52,11 +58,11 @@ func Notify(msg string) error {
 			defer wg.Done()
 			logPrefix := fmt.Sprintf("Sent notification to %s", label)
 			if err := notifier.Notify(ctx, msg); err != nil {
-				fmt.Printf("%s...ERROR (%s)\n", logPrefix, err.Error())
+				fmt.Fprintf(output, "%s...ERROR (%s)\n", logPrefix, err.Error())
 				erroredNotifiersChan <- label
 				return
 			}
-			fmt.Printf("%s...OK\n", logPrefix)
+			fmt.Fprintf(output, "%s...OK\n", logPrefix)
 		}(label, notifier)
 	}
 	go func() {
