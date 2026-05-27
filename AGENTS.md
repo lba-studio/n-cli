@@ -52,3 +52,5 @@ Semver rules:
 - **patch** — everything else (fixes, refactors, dependency updates, docs)
 
 The script updates `pkg/version/get_version.go`, commits as `release vX.Y.Z`, creates a tag `vX.Y.Z`, and pushes both the commit and the tag to `origin`.
+
+After pushing the tag, create the GitHub release as a draft first. Patch release titles should use `vX.Y.Z - Minor improvements` by default, or `vX.Y.Z - Bug fixes` when the patch is specifically bug-fix focused.
