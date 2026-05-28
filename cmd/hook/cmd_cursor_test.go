@@ -3,6 +3,7 @@ package hook
 import (
 	"testing"
 
+	"github.com/lba-studio/n-cli/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -61,6 +62,7 @@ func TestHandleHookCursor(t *testing.T) {
 	t.Cleanup(func() {
 		notify = originalNotify
 	})
+	stubHookConfig(t, config.Config{})
 
 	tests := []struct {
 		name      string
@@ -115,4 +117,52 @@ func TestHandleHookCursor(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHandleHookCursorIgnoredEvent(t *testing.T) {
+	originalNotify := notify
+	t.Cleanup(func() {
+		notify = originalNotify
+	})
+	stubHookConfig(t, config.Config{
+		Hooks: &config.HooksConfig{
+			Cursor: &config.HookAgentConfig{
+				IgnoredEvents: []string{"stop"},
+			},
+		},
+	})
+
+	var gotMsg string
+	notify = func(msg string) error {
+		gotMsg = msg
+		return nil
+	}
+
+	err := HandleHookCursor([]byte(`{"hook_event_name":"stop","status":"completed"}`))
+	require.NoError(t, err)
+	assert.Empty(t, gotMsg)
+}
+
+func TestHandleHookCursorNonIgnoredEvent(t *testing.T) {
+	originalNotify := notify
+	t.Cleanup(func() {
+		notify = originalNotify
+	})
+	stubHookConfig(t, config.Config{
+		Hooks: &config.HooksConfig{
+			Cursor: &config.HookAgentConfig{
+				IgnoredEvents: []string{"sessionEnd"},
+			},
+		},
+	})
+
+	var gotMsg string
+	notify = func(msg string) error {
+		gotMsg = msg
+		return nil
+	}
+
+	err := HandleHookCursor([]byte(`{"hook_event_name":"stop","status":"completed"}`))
+	require.NoError(t, err)
+	assert.Equal(t, "Done: agent finished (status: completed)", gotMsg)
 }

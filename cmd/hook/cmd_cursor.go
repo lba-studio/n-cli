@@ -38,6 +38,14 @@ func HandleHookCursor(data []byte) error {
 		return fmt.Errorf("parse hook JSON: %w", err)
 	}
 
+	ignored, err := isHookEventIgnored(hookAgentCursor, payload.HookEventName)
+	if err != nil {
+		return err
+	}
+	if ignored {
+		return nil
+	}
+
 	msg := FormatCursorMessage(payload)
 	if msg == "" {
 		return nil

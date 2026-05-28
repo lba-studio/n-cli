@@ -20,6 +20,7 @@ const (
 )
 
 func NewSetupClaudeCodeCmd() *cobra.Command {
+	var ignoredEvents string
 	c := &cobra.Command{
 		Use:   "claude-code",
 		Short: "Set up Claude Code hooks so you get n-cli notifications when the agent finishes or needs approval.",
@@ -32,13 +33,17 @@ shell environment Claude Code uses so hooks can run.
 After setup, review and trust the hooks in Claude Code with /hooks if prompted.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runSetupClaudeCode()
+			return runSetupClaudeCode(hookSetupOptions{
+				ignoredEvents:        ignoredEvents,
+				ignoredEventsChanged: cmd.Flags().Changed("ignored-events"),
+			})
 		},
 	}
+	c.Flags().StringVar(&ignoredEvents, "ignored-events", "", "Comma-separated hook event names to skip notifications for.")
 	return c
 }
 
-func runSetupClaudeCode() error {
+func runSetupClaudeCode(opts hookSetupOptions) error {
 	if _, err := exec.LookPath("n-cli"); err != nil {
 		fmt.Fprintf(os.Stderr, "n-cli is not on PATH; add it to your PATH so Claude Code can run it from hooks.\n")
 		fmt.Fprintf(os.Stderr, "%s\n", pathHint())
@@ -57,6 +62,10 @@ func runSetupClaudeCode() error {
 	}
 
 	if err := mergeClaudeCodeSettings(settingsPath, claudeCodeHookCommand); err != nil {
+		return err
+	}
+
+	if err := updateHookSetupConfigForDefaultPath(claudeCodeHookSetupAgent, opts); err != nil {
 		return err
 	}
 

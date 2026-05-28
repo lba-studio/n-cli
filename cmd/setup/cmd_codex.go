@@ -12,13 +12,14 @@ import (
 
 // Codex hooks documentation: https://developers.openai.com/codex/hooks
 const (
-	codexDir          = ".codex"
-	codexHookCommand  = "n-cli hook codex"
+	codexDir         = ".codex"
+	codexHookCommand = "n-cli hook codex"
 )
 
 var codexHookEvents = []string{"Stop", "PermissionRequest"}
 
 func NewSetupCodexCmd() *cobra.Command {
+	var ignoredEvents string
 	c := &cobra.Command{
 		Use:   "codex",
 		Short: "Set up Codex hooks so you get n-cli notifications when the agent finishes or needs approval.",
@@ -31,13 +32,17 @@ shell environment Codex uses so hooks can run.
 After setup, review and trust the hooks in Codex with /hooks if prompted.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runSetupCodex()
+			return runSetupCodex(hookSetupOptions{
+				ignoredEvents:        ignoredEvents,
+				ignoredEventsChanged: cmd.Flags().Changed("ignored-events"),
+			})
 		},
 	}
+	c.Flags().StringVar(&ignoredEvents, "ignored-events", "", "Comma-separated hook event names to skip notifications for.")
 	return c
 }
 
-func runSetupCodex() error {
+func runSetupCodex(opts hookSetupOptions) error {
 	if _, err := exec.LookPath("n-cli"); err != nil {
 		fmt.Fprintf(os.Stderr, "n-cli is not on PATH; add it to your PATH so Codex can run it from hooks.\n")
 		fmt.Fprintf(os.Stderr, "%s\n", pathHint())
@@ -56,6 +61,10 @@ func runSetupCodex() error {
 	}
 
 	if err := mergeCodexHooksJSON(hooksJSONPath, codexHookCommand); err != nil {
+		return err
+	}
+
+	if err := updateHookSetupConfigForDefaultPath(codexHookSetupAgent, opts); err != nil {
 		return err
 	}
 
