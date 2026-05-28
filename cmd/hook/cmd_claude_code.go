@@ -51,6 +51,14 @@ func HandleHookClaudeCode(data []byte) error {
 		return nil
 	}
 
+	ignored, err := isHookEventIgnored(hookAgentClaudeCode, payload.HookEventName)
+	if err != nil {
+		return err
+	}
+	if ignored {
+		return nil
+	}
+
 	msg := FormatClaudeCodeMessage(payload)
 	if msg == "" {
 		return nil

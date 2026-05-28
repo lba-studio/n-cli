@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lba-studio/n-cli/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -59,6 +60,7 @@ func TestHandleHookCodex(t *testing.T) {
 	t.Cleanup(func() {
 		notify = originalNotify
 	})
+	stubHookConfig(t, config.Config{})
 
 	tests := []struct {
 		name      string
@@ -116,11 +118,62 @@ func TestHandleHookCodex(t *testing.T) {
 	}
 }
 
+func TestHandleHookCodexIgnoredEvent(t *testing.T) {
+	originalNotify := notify
+	t.Cleanup(func() {
+		notify = originalNotify
+	})
+	stubHookConfig(t, config.Config{
+		Hooks: &config.HooksConfig{
+			Codex: &config.HookAgentConfig{
+				IgnoredEvents: []string{"PermissionRequest", "Stop"},
+			},
+		},
+	})
+
+	var gotMsg string
+	notify = func(msg string) error {
+		gotMsg = msg
+		return nil
+	}
+
+	output, err := HandleHookCodex([]byte(`{"hook_event_name":"Stop"}`))
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"continue":true}`, string(output))
+	assert.Empty(t, gotMsg)
+}
+
+func TestHandleHookCodexNonIgnoredEvent(t *testing.T) {
+	originalNotify := notify
+	t.Cleanup(func() {
+		notify = originalNotify
+	})
+	stubHookConfig(t, config.Config{
+		Hooks: &config.HooksConfig{
+			Codex: &config.HookAgentConfig{
+				IgnoredEvents: []string{"PermissionRequest"},
+			},
+		},
+	})
+
+	var gotMsg string
+	notify = func(msg string) error {
+		gotMsg = msg
+		return nil
+	}
+
+	output, err := HandleHookCodex([]byte(`{"hook_event_name":"Stop"}`))
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"continue":true}`, string(output))
+	assert.Equal(t, "Codex agent finished", gotMsg)
+}
+
 func TestHookCodexCommandOutput(t *testing.T) {
 	originalNotify := notify
 	t.Cleanup(func() {
 		notify = originalNotify
 	})
+	stubHookConfig(t, config.Config{})
 
 	tests := []struct {
 		name       string

@@ -60,6 +60,7 @@ make build; n Build is done;
 n-cli setup cursor       # set up Cursor hooks so you get notified when the agent finishes or session ends
 n-cli setup codex        # set up Codex hooks so you get notified when the agent finishes or needs approval
 n-cli setup claude-code  # set up Claude Code hooks so you get notified when the agent finishes or needs approval
+n-cli setup codex --ignored-events=PermissionRequest # skip notifications for selected hook events
 
 # useful commands
 n-cli init # optional: initializes & configures n-cli without running anything
@@ -75,7 +76,10 @@ Get notifications when the Cursor Agent stops or when the session ends.
 
 ```sh
 n-cli setup cursor # registers n-cli hook cursor in ~/.cursor/hooks.json
+n-cli setup cursor --ignored-events=sessionEnd
 ```
+
+Known Cursor hook events registered by n-cli: `stop`, `sessionEnd`.
 
 ## Codex
 
@@ -83,9 +87,12 @@ Get notifications when Codex finishes a turn (`Stop`) or is waiting for your app
 
 ```sh
 n-cli setup codex # registers n-cli hook codex in ~/.codex/hooks.json
+n-cli setup codex --ignored-events=PermissionRequest
 ```
 
 After setup, restart Codex and review/trust the hooks with `/hooks` if prompted. Ensure `n-cli` stays on your PATH in the shell environment Codex uses.
+
+Known Codex hook events registered by n-cli: `Stop`, `PermissionRequest`.
 
 ## Claude Code
 
@@ -93,9 +100,14 @@ Get notifications when the Claude Code agent finishes (`Stop`) or needs your app
 
 ```sh
 n-cli setup claude-code # registers n-cli hook claude-code in ~/.claude/settings.json
+n-cli setup claude-code --ignored-events=Notification
 ```
 
 After setup, restart Claude Code and review/trust the hooks with `/hooks` if prompted. Ensure `n-cli` stays on your PATH in the shell environment Claude Code uses.
+
+Known Claude Code hook events registered by n-cli: `Stop`, `Notification`.
+
+`--ignored-events` accepts comma-separated event names. Event matching is exact and case-sensitive against `hook_event_name`, and unknown future event names are allowed.
 
 # 📝 Configuration
 
@@ -123,4 +135,18 @@ custom: # if missing, n-cli won't use custom webhook as a notification channel
   headers: # optional - custom HTTP headers
     Authorization: Bearer your-token-here
     X-Custom-Header: custom-value
+
+hooks: # optional - per-agent hook notification preferences
+  codex:
+    setup: true
+    ignored_events:
+      - PermissionRequest
+  claude_code:
+    setup: true
+    ignored_events:
+      - Notification
+  cursor:
+    setup: true
+    ignored_events:
+      - stop
 ```

@@ -12,13 +12,14 @@ import (
 )
 
 const (
-	cursorDir  = ".cursor"
-	hooksJSON  = "hooks.json"
+	cursorDir   = ".cursor"
+	hooksJSON   = "hooks.json"
 	hookCommand = "n-cli hook cursor"
-	maxVersion = 1 // ensures that hooks.json version changes do not break our integration
+	maxVersion  = 1 // ensures that hooks.json version changes do not break our integration
 )
 
 func NewSetupCursorCmd() *cobra.Command {
+	var ignoredEvents string
 	c := &cobra.Command{
 		Use:   "cursor",
 		Short: "Set up Cursor hooks so you get n-cli notifications when the agent finishes or the session ends.",
@@ -32,13 +33,17 @@ To get notifications when the agent needs your input, add a per-project rule in 
 that tells the agent to run: echo "Need input: <question>" | n-cli send --stdin`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runSetupCursor()
+			return runSetupCursor(hookSetupOptions{
+				ignoredEvents:        ignoredEvents,
+				ignoredEventsChanged: cmd.Flags().Changed("ignored-events"),
+			})
 		},
 	}
+	c.Flags().StringVar(&ignoredEvents, "ignored-events", "", "Comma-separated hook event names to skip notifications for.")
 	return c
 }
 
-func runSetupCursor() error {
+func runSetupCursor(opts hookSetupOptions) error {
 	if _, err := exec.LookPath("n-cli"); err != nil {
 		fmt.Fprintf(os.Stderr, "n-cli is not on PATH; add it to your PATH so Cursor can run it from hooks.\n")
 		fmt.Fprintf(os.Stderr, "%s\n", pathHint())
@@ -57,6 +62,10 @@ func runSetupCursor() error {
 	}
 
 	if err := mergeHooksJSON(hooksJSONPath); err != nil {
+		return err
+	}
+
+	if err := updateHookSetupConfigForDefaultPath(cursorHookSetupAgent, opts); err != nil {
 		return err
 	}
 

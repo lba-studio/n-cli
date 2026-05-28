@@ -3,6 +3,7 @@ package hook
 import (
 	"testing"
 
+	"github.com/lba-studio/n-cli/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -75,6 +76,7 @@ func TestHandleHookClaudeCode(t *testing.T) {
 	t.Cleanup(func() {
 		notify = originalNotify
 	})
+	stubHookConfig(t, config.Config{})
 
 	tests := []struct {
 		name      string
@@ -140,4 +142,52 @@ func TestHandleHookClaudeCode(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHandleHookClaudeCodeIgnoredEvent(t *testing.T) {
+	originalNotify := notify
+	t.Cleanup(func() {
+		notify = originalNotify
+	})
+	stubHookConfig(t, config.Config{
+		Hooks: &config.HooksConfig{
+			ClaudeCode: &config.HookAgentConfig{
+				IgnoredEvents: []string{"Notification"},
+			},
+		},
+	})
+
+	var gotMsg string
+	notify = func(msg string) error {
+		gotMsg = msg
+		return nil
+	}
+
+	err := HandleHookClaudeCode([]byte(`{"hook_event_name":"Notification","notification_type":"permission_prompt","message":"approve?"}`))
+	require.NoError(t, err)
+	assert.Empty(t, gotMsg)
+}
+
+func TestHandleHookClaudeCodeNonIgnoredEvent(t *testing.T) {
+	originalNotify := notify
+	t.Cleanup(func() {
+		notify = originalNotify
+	})
+	stubHookConfig(t, config.Config{
+		Hooks: &config.HooksConfig{
+			ClaudeCode: &config.HookAgentConfig{
+				IgnoredEvents: []string{"Notification"},
+			},
+		},
+	})
+
+	var gotMsg string
+	notify = func(msg string) error {
+		gotMsg = msg
+		return nil
+	}
+
+	err := HandleHookClaudeCode([]byte(`{"hook_event_name":"Stop"}`))
+	require.NoError(t, err)
+	assert.Equal(t, "Claude Code agent finished", gotMsg)
 }

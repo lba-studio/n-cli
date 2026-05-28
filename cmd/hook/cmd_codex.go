@@ -48,6 +48,14 @@ func HandleHookCodex(data []byte) ([]byte, error) {
 		output = []byte("{\"continue\":true}\n")
 	}
 
+	ignored, err := isHookEventIgnored(hookAgentCodex, payload.HookEventName)
+	if err != nil {
+		return output, err
+	}
+	if ignored {
+		return output, nil
+	}
+
 	msg := FormatCodexMessage(payload)
 	if msg == "" {
 		return output, nil

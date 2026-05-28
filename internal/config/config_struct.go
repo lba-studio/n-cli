@@ -20,10 +20,31 @@ type SystemConfig struct {
 	Disabled bool `mapstructure:"disabled"`
 }
 
+const (
+	HooksKey               = "hooks"
+	HookAgentCodexKey      = "codex"
+	HookAgentClaudeCodeKey = "claude_code"
+	HookAgentCursorKey     = "cursor"
+	HookSetupKey           = "setup"
+	HookIgnoredEventsKey   = "ignored_events"
+)
+
+type HookAgentConfig struct {
+	Setup         bool     `mapstructure:"setup" yaml:"setup"`
+	IgnoredEvents []string `mapstructure:"ignored_events" yaml:"ignored_events,omitempty"`
+}
+
+type HooksConfig struct {
+	Codex      *HookAgentConfig `mapstructure:"codex" yaml:"codex,omitempty"`
+	ClaudeCode *HookAgentConfig `mapstructure:"claude_code" yaml:"claude_code,omitempty"`
+	Cursor     *HookAgentConfig `mapstructure:"cursor" yaml:"cursor,omitempty"`
+}
+
 // Config struct to hold the configuration values
 type Config struct {
-	Discord *DiscordConfig `mapstructure:"discord"`
-	Slack   *SlackConfig   `mapstructure:"slack"`
-	Custom  *CustomConfig  `mapstructure:"custom"`
-	System  *SystemConfig  `mapstructure:"system"`
+	Discord *DiscordConfig `mapstructure:"discord" yaml:"discord,omitempty"`
+	Slack   *SlackConfig   `mapstructure:"slack" yaml:"slack,omitempty"`
+	Custom  *CustomConfig  `mapstructure:"custom" yaml:"custom,omitempty"`
+	System  *SystemConfig  `mapstructure:"system" yaml:"system,omitempty"`
+	Hooks   *HooksConfig   `mapstructure:"hooks" yaml:"hooks,omitempty"`
 }
