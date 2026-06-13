@@ -20,7 +20,7 @@ cmd/            # Cobra command definitions — one file per top-level command
 internal/
   config/       # Config loading and initialisation (viper-based, ~/.n-cli/config.yaml)
 pkg/
-  notifier/     # Core notification logic — each channel (Discord, Slack, custom, system) has its own file
+  notifier/     # Core notification logic — each channel (Discord, Slack, customs, system) has its own file
     marker/     # Tracks command run metrics (duration, exit code) for `n-cli run`
     webhook/    # Shared HTTP webhook utilities
   formatter/    # Message formatting helpers

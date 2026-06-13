@@ -15,184 +15,149 @@ func TestCustomNotifier(t *testing.T) {
 	testRestyClient := resty.New()
 	httpmock.ActivateNonDefault(testRestyClient.GetClient())
 	defer httpmock.DeactivateAndReset()
-	defaultConfig := config.Config{
-		Custom: &config.CustomConfig{
-			TargetUrl:       "https://api.example.com/webhook",
-			PayloadTemplate: `{"text": "{{message}}", "priority": "high"}`,
-			Method:          "POST",
-		},
+	defaultConfig := config.CustomConfig{
+		TargetUrl:       "https://api.example.com/webhook",
+		PayloadTemplate: `{"text": "{{message}}", "priority": "high"}`,
+		Method:          "POST",
 	}
-	var mockConfigurer *config.MockConfigurer
 
 	type testCase struct {
 		name                 string
+		customConfig         config.CustomConfig
 		wantErr              error
-		doMock               func()
+		doMock               func(config.CustomConfig)
 		shouldAPINotBeCalled bool
 	}
 	testCases := []testCase{
 		{
-			name: "happy path - JSON payload template",
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(defaultConfig, nil)
+			name:         "happy path - JSON payload template",
+			customConfig: defaultConfig,
+			doMock: func(cfg config.CustomConfig) {
 				responder := httpmock.NewStringResponder(200, "")
-				httpmock.RegisterResponder("POST", defaultConfig.Custom.TargetUrl, responder)
+				httpmock.RegisterResponder("POST", cfg.TargetUrl, responder)
 			},
 		},
 		{
 			name: "happy path - plain text payload template",
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(config.Config{
-					Custom: &config.CustomConfig{
-						TargetUrl:       "https://api.example.com/webhook",
-						PayloadTemplate: "Notification: {{message}}",
-						Method:          "POST",
-					}}, nil)
+			customConfig: config.CustomConfig{
+				TargetUrl:       "https://api.example.com/webhook",
+				PayloadTemplate: "Notification: {{message}}",
+				Method:          "POST",
+			},
+			doMock: func(cfg config.CustomConfig) {
 				responder := httpmock.NewStringResponder(200, "")
-				httpmock.RegisterResponder("POST", defaultConfig.Custom.TargetUrl, responder)
+				httpmock.RegisterResponder("POST", cfg.TargetUrl, responder)
 			},
 		},
 		{
 			name: "happy path - different HTTP methods",
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(config.Config{
-					Custom: &config.CustomConfig{
-						TargetUrl:       "https://api.example.com/webhook",
-						PayloadTemplate: `{"message": "{{message}}"}`,
-						Method:          "PUT",
-					}}, nil)
+			customConfig: config.CustomConfig{
+				TargetUrl:       "https://api.example.com/webhook",
+				PayloadTemplate: `{"message": "{{message}}"}`,
+				Method:          "PUT",
+			},
+			doMock: func(cfg config.CustomConfig) {
 				responder := httpmock.NewStringResponder(200, "")
-				httpmock.RegisterResponder("PUT", defaultConfig.Custom.TargetUrl, responder)
+				httpmock.RegisterResponder("PUT", cfg.TargetUrl, responder)
 			},
 		},
 		{
 			name: "happy path - case insensitive method",
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(config.Config{
-					Custom: &config.CustomConfig{
-						TargetUrl:       "https://api.example.com/webhook",
-						PayloadTemplate: `{"message": "{{message}}"}`,
-						Method:          "patch",
-					}}, nil)
+			customConfig: config.CustomConfig{
+				TargetUrl:       "https://api.example.com/webhook",
+				PayloadTemplate: `{"message": "{{message}}"}`,
+				Method:          "patch",
+			},
+			doMock: func(cfg config.CustomConfig) {
 				responder := httpmock.NewStringResponder(200, "")
-				httpmock.RegisterResponder("PATCH", defaultConfig.Custom.TargetUrl, responder)
+				httpmock.RegisterResponder("PATCH", cfg.TargetUrl, responder)
 			},
 		},
 		{
 			name: "happy path - custom headers",
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(config.Config{
-					Custom: &config.CustomConfig{
-						TargetUrl:       "https://api.example.com/webhook",
-						PayloadTemplate: `{"message": "{{message}}"}`,
-						Method:          "POST",
-						Headers: map[string]string{
-							"Authorization": "Bearer token123",
-							"X-Custom":      "value",
-						},
-					}}, nil)
+			customConfig: config.CustomConfig{
+				TargetUrl:       "https://api.example.com/webhook",
+				PayloadTemplate: `{"message": "{{message}}"}`,
+				Method:          "POST",
+				Headers: map[string]string{
+					"Authorization": "Bearer token123",
+					"X-Custom":      "value",
+				},
+			},
+			doMock: func(cfg config.CustomConfig) {
 				responder := httpmock.NewStringResponder(200, "")
-				httpmock.RegisterResponder("POST", defaultConfig.Custom.TargetUrl, responder)
+				httpmock.RegisterResponder("POST", cfg.TargetUrl, responder)
 			},
 		},
 		{
 			name: "happy path - default method (POST)",
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(config.Config{
-					Custom: &config.CustomConfig{
-						TargetUrl:       "https://api.example.com/webhook",
-						PayloadTemplate: `{"message": "{{message}}"}`,
-						// Method not specified, should default to POST
-					}}, nil)
+			customConfig: config.CustomConfig{
+				TargetUrl:       "https://api.example.com/webhook",
+				PayloadTemplate: `{"message": "{{message}}"}`,
+			},
+			doMock: func(cfg config.CustomConfig) {
 				responder := httpmock.NewStringResponder(200, "")
-				httpmock.RegisterResponder("POST", defaultConfig.Custom.TargetUrl, responder)
+				httpmock.RegisterResponder("POST", cfg.TargetUrl, responder)
 			},
 		},
 		{
-			name: "do not run when custom has no config",
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(config.Config{}, nil)
-			},
-			wantErr:              ErrCustomMissingConfig,
+			name:                 "sad path - missing targetUrl",
+			wantErr:              ErrCustomMissingTargetUrl,
 			shouldAPINotBeCalled: true,
-		},
-		{
-			name:    "sad path - cannot get config",
-			wantErr: errors.New("config error"),
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(config.Config{}, errors.New("config error"))
+			customConfig: config.CustomConfig{
+				PayloadTemplate: `{"message": "{{message}}"}`,
+				Method:          "POST",
 			},
-			shouldAPINotBeCalled: true,
 		},
 		{
-			name:    "sad path - missing targetUrl",
-			wantErr: ErrCustomMissingTargetUrl,
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(config.Config{
-					Custom: &config.CustomConfig{
-						PayloadTemplate: `{"message": "{{message}}"}`,
-						Method:          "POST",
-					}}, nil)
+			name:                 "sad path - missing payloadTemplate",
+			wantErr:              ErrCustomMissingPayloadTemplate,
+			shouldAPINotBeCalled: true,
+			customConfig: config.CustomConfig{
+				TargetUrl: "https://api.example.com/webhook",
+				Method:    "POST",
 			},
-			shouldAPINotBeCalled: true,
 		},
 		{
-			name:    "sad path - missing payloadTemplate",
-			wantErr: ErrCustomMissingPayloadTemplate,
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(config.Config{
-					Custom: &config.CustomConfig{
-						TargetUrl: "https://api.example.com/webhook",
-						Method:    "POST",
-					}}, nil)
+			name:                 "sad path - payloadTemplate missing {{message}} placeholder",
+			wantErr:              ErrCustomInvalidPayloadTemplate,
+			shouldAPINotBeCalled: true,
+			customConfig: config.CustomConfig{
+				TargetUrl:       "https://api.example.com/webhook",
+				PayloadTemplate: `{"text": "no placeholder here"}`,
+				Method:          "POST",
 			},
-			shouldAPINotBeCalled: true,
 		},
 		{
-			name:    "sad path - payloadTemplate missing {{message}} placeholder",
-			wantErr: ErrCustomInvalidPayloadTemplate,
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(config.Config{
-					Custom: &config.CustomConfig{
-						TargetUrl:       "https://api.example.com/webhook",
-						PayloadTemplate: `{"text": "no placeholder here"}`,
-						Method:          "POST",
-					}}, nil)
+			name:                 "sad path - invalid HTTP method",
+			wantErr:              ErrCustomInvalidMethod,
+			shouldAPINotBeCalled: true,
+			customConfig: config.CustomConfig{
+				TargetUrl:       "https://api.example.com/webhook",
+				PayloadTemplate: `{"message": "{{message}}"}`,
+				Method:          "INVALID",
 			},
-			shouldAPINotBeCalled: true,
 		},
 		{
-			name:    "sad path - invalid HTTP method",
-			wantErr: ErrCustomInvalidMethod,
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(config.Config{
-					Custom: &config.CustomConfig{
-						TargetUrl:       "https://api.example.com/webhook",
-						PayloadTemplate: `{"message": "{{message}}"}`,
-						Method:          "INVALID",
-					}}, nil)
-			},
-			shouldAPINotBeCalled: true,
-		},
-		{
-			name:    "sad path - fail to call webhook",
-			wantErr: errors.New("failed to call custom webhook: {\"error\": \"Bad Request\"}"),
-			doMock: func() {
-				mockConfigurer.On("GetConfig").Return(defaultConfig, nil)
+			name:         "sad path - fail to call webhook",
+			customConfig: defaultConfig,
+			wantErr:      errors.New("failed to call custom webhook: {\"error\": \"Bad Request\"}"),
+			doMock: func(cfg config.CustomConfig) {
 				responder := httpmock.NewStringResponder(400, `{"error": "Bad Request"}`)
-				httpmock.RegisterResponder("POST", defaultConfig.Custom.TargetUrl, responder)
+				httpmock.RegisterResponder("POST", cfg.TargetUrl, responder)
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		httpmock.Reset()
-		mockConfigurer = config.NewMockConfigurer(t)
 		t.Run(tc.name, func(t *testing.T) {
-			tc.doMock()
+			if tc.doMock != nil {
+				tc.doMock(tc.customConfig)
+			}
 			notifier := &CustomNotifier{
-				restyCli:   testRestyClient,
-				configurer: mockConfigurer,
+				cfg:      &tc.customConfig,
+				restyCli: testRestyClient,
 			}
 			err := notifier.Notify(context.Background(), "my notification")
 			if tc.shouldAPINotBeCalled {
@@ -201,4 +166,13 @@ func TestCustomNotifier(t *testing.T) {
 			assert.Equal(t, tc.wantErr, err)
 		})
 	}
+}
+
+func TestCustomNotifierMissingConfig(t *testing.T) {
+	notifier := &CustomNotifier{
+		cfg: nil,
+		restyCli: resty.New(),
+	}
+	err := notifier.Notify(context.Background(), "my notification")
+	assert.Equal(t, ErrCustomMissingConfig, err)
 }

@@ -39,8 +39,8 @@ func NotifyTo(msg string, output io.Writer) error {
 	if cfg.Slack != nil {
 		notifierMap["slack"] = NewSlackNotifier()
 	}
-	if cfg.Custom != nil {
-		notifierMap["custom"] = NewCustomNotifier()
+	for _, entry := range customNotifierEntries(cfg) {
+		notifierMap[entry.label] = NewCustomNotifierFromConfig(entry.cfg)
 	}
 	labels := make([]string, 0, len(notifierMap))
 	for label := range notifierMap {
@@ -82,4 +82,30 @@ func NotifyTo(msg string, output io.Writer) error {
 		return fmt.Errorf("one or more notifiers failed: %s", strings.Join(erroredNotifiers, ", "))
 	}
 	return nil
+}
+
+type customNotifierEntry struct {
+	label string
+	cfg   config.CustomConfig
+}
+
+func customNotifierEntries(cfg config.Config) []customNotifierEntry {
+	var customConfigs []config.CustomConfig
+	if cfg.Custom != nil {
+		customConfigs = append(customConfigs, *cfg.Custom)
+	}
+	customConfigs = append(customConfigs, cfg.Customs...)
+
+	entries := make([]customNotifierEntry, 0, len(customConfigs))
+	for i, cc := range customConfigs {
+		label := cc.Name
+		if label == "" {
+			label = fmt.Sprintf("custom[%d]", i)
+		}
+		entries = append(entries, customNotifierEntry{
+			label: label,
+			cfg:   cc,
+		})
+	}
+	return entries
 }

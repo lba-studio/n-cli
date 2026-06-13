@@ -10,6 +10,7 @@ type WebhookConfig struct {
 }
 
 type CustomConfig struct {
+	Name            string            `mapstructure:"name" yaml:"name,omitempty"`
 	PayloadTemplate string            `mapstructure:"payloadTemplate"`
 	TargetUrl       string            `mapstructure:"targetUrl"`
 	Method          string            `mapstructure:"method"`
@@ -44,7 +45,8 @@ type HooksConfig struct {
 type Config struct {
 	Discord *DiscordConfig `mapstructure:"discord" yaml:"discord,omitempty"`
 	Slack   *SlackConfig   `mapstructure:"slack" yaml:"slack,omitempty"`
-	Custom  *CustomConfig  `mapstructure:"custom" yaml:"custom,omitempty"`
-	System  *SystemConfig  `mapstructure:"system" yaml:"system,omitempty"`
+	Custom  *CustomConfig   `mapstructure:"custom" yaml:"custom,omitempty"`
+	Customs []CustomConfig  `mapstructure:"customs" yaml:"customs,omitempty"`
+	System  *SystemConfig   `mapstructure:"system" yaml:"system,omitempty"`
 	Hooks   *HooksConfig   `mapstructure:"hooks" yaml:"hooks,omitempty"`
 }

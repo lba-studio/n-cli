@@ -128,13 +128,17 @@ slack: # if missing, n-cli won't use Slack as a notification channel
   webhookUrl: https://hooks.slack.com/triggers/ABCDEFG123/123456789/whateverstringishere # required
   messageFormat: "{{message}}" # optional
 
-custom: # if missing, n-cli won't use custom webhook as a notification channel
-  targetUrl: https://api.example.com/webhook # required - the webhook URL to call
-  payloadTemplate: '{"text": "{{message}}", "priority": "high"}' # required - template with {{message}} placeholder
-  method: POST # optional - HTTP method (default: POST), case-insensitive
-  headers: # optional - custom HTTP headers
-    Authorization: Bearer your-token-here
-    X-Custom-Header: custom-value
+customs: # if missing, n-cli won't use custom webhooks as a notification channel
+  - name: pagerduty # optional - custom label shown in notification output (default: "custom[0]", "custom[1]", etc.)
+    targetUrl: https://api.example.com/webhook # required - the webhook URL to call
+    payloadTemplate: '{"text": "{{message}}", "priority": "high"}' # required - template with {{message}} placeholder
+    method: POST # optional - HTTP method (default: POST), case-insensitive
+    headers: # optional - custom HTTP headers
+      Authorization: Bearer your-token-here
+      X-Custom-Header: custom-value
+  - name: monitoring
+    targetUrl: https://n-cli.sh/my_cool_topic_here
+    payloadTemplate: 'Alert: {{message}}'
 
 hooks: # optional - per-agent hook notification preferences
   codex:

@@ -14,8 +14,8 @@ import (
 )
 
 type CustomNotifier struct {
-	restyCli   *resty.Client
-	configurer config.Configurer
+	cfg      *config.CustomConfig
+	restyCli *resty.Client
 }
 
 var (
@@ -27,28 +27,26 @@ var (
 )
 
 func (n *CustomNotifier) Notify(ctx context.Context, msg string) error {
-	cfg, err := n.configurer.GetConfig()
-	if err != nil {
-		return err
-	}
-	if cfg.Custom == nil {
+	if n.cfg == nil {
 		return ErrCustomMissingConfig
 	}
-	if cfg.Custom.TargetUrl == "" {
+	cfg := n.cfg
+
+	if cfg.TargetUrl == "" {
 		return ErrCustomMissingTargetUrl
 	}
-	if cfg.Custom.PayloadTemplate == "" {
+	if cfg.PayloadTemplate == "" {
 		return ErrCustomMissingPayloadTemplate
 	}
 
 	// Replace {{message}} placeholder in payload template
-	if !strings.Contains(cfg.Custom.PayloadTemplate, "{{message}}") {
+	if !strings.Contains(cfg.PayloadTemplate, "{{message}}") {
 		return ErrCustomInvalidPayloadTemplate
 	}
-	payloadStr := strings.Replace(cfg.Custom.PayloadTemplate, "{{message}}", msg, 1)
+	payloadStr := strings.Replace(cfg.PayloadTemplate, "{{message}}", msg, 1)
 
 	// Determine HTTP method (default to POST, case-insensitive)
-	method := strings.ToUpper(cfg.Custom.Method)
+	method := strings.ToUpper(cfg.Method)
 	if method == "" {
 		method = "POST"
 	}
@@ -66,7 +64,7 @@ func (n *CustomNotifier) Notify(ctx context.Context, msg string) error {
 	req := n.restyCli.R().SetContext(ctx)
 
 	// Apply custom headers
-	for key, value := range cfg.Custom.Headers {
+	for key, value := range cfg.Headers {
 		req = req.SetHeader(key, value)
 	}
 
@@ -82,21 +80,22 @@ func (n *CustomNotifier) Notify(ctx context.Context, msg string) error {
 
 	// Make the HTTP request
 	var resp *resty.Response
+	var err error
 	switch method {
 	case "GET":
-		resp, err = req.Get(cfg.Custom.TargetUrl)
+		resp, err = req.Get(cfg.TargetUrl)
 	case "POST":
-		resp, err = req.Post(cfg.Custom.TargetUrl)
+		resp, err = req.Post(cfg.TargetUrl)
 	case "PUT":
-		resp, err = req.Put(cfg.Custom.TargetUrl)
+		resp, err = req.Put(cfg.TargetUrl)
 	case "PATCH":
-		resp, err = req.Patch(cfg.Custom.TargetUrl)
+		resp, err = req.Patch(cfg.TargetUrl)
 	case "DELETE":
-		resp, err = req.Delete(cfg.Custom.TargetUrl)
+		resp, err = req.Delete(cfg.TargetUrl)
 	case "HEAD":
-		resp, err = req.Head(cfg.Custom.TargetUrl)
+		resp, err = req.Head(cfg.TargetUrl)
 	case "OPTIONS":
-		resp, err = req.Options(cfg.Custom.TargetUrl)
+		resp, err = req.Options(cfg.TargetUrl)
 	default:
 		return ErrCustomInvalidMethod
 	}
@@ -110,12 +109,12 @@ func (n *CustomNotifier) Notify(ctx context.Context, msg string) error {
 	return nil
 }
 
-func NewCustomNotifier() Notifier {
+func NewCustomNotifierFromConfig(cfg config.CustomConfig) Notifier {
 	return &CustomNotifier{
+		cfg: &cfg,
 		restyCli: resty.New().
 			SetRetryCount(3).
 			SetLogger(&restyutils.RestyLogger{}).
 			SetTimeout(10 * time.Second),
-		configurer: config.NewConfigurer(),
 	}
 }
