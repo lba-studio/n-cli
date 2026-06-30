@@ -37,6 +37,8 @@ pkg/
 
 **Adding a new `hook` subcommand** (e.g. for a new agent integration): add a file in `cmd/hook/`, implement the hook handler there, and register it in `cmd/cmd_hook.go`'s `NewHookCmd()`.
 
+**Codex hook payload schema**: see `docs/cached/codex-hooks-payload.md` for all fields (including `session_id`, `cwd`, session naming via `~/.codex/session_index.jsonl`).
+
 ## Releasing a New Version
 
 Use `release.sh` to bump the version, commit, tag, and push in one step:

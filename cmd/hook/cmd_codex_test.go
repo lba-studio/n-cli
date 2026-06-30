@@ -3,6 +3,9 @@ package hook
 import (
 	"bytes"
 	"errors"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -46,6 +49,39 @@ func TestFormatCodexMessage(t *testing.T) {
 			},
 			want: "Codex hook: Custom",
 		},
+		{
+			name: "stop with cwd shows project name",
+			payload: codexHookPayload{
+				HookEventName: "Stop",
+				Cwd:           "/Users/user/n-cli",
+			},
+			want: "Codex [n-cli] agent finished",
+		},
+		{
+			name: "permission request with cwd shows project name",
+			payload: codexHookPayload{
+				HookEventName: "PermissionRequest",
+				ToolName:      "shell",
+				Cwd:           "/Users/user/n-cli",
+			},
+			want: "Codex [n-cli] needs approval for: shell",
+		},
+		{
+			name: "root cwd ignored",
+			payload: codexHookPayload{
+				HookEventName: "Stop",
+				Cwd:           "/",
+			},
+			want: "Codex agent finished",
+		},
+		{
+			name: "dot cwd ignored",
+			payload: codexHookPayload{
+				HookEventName: "Stop",
+				Cwd:           ".",
+			},
+			want: "Codex agent finished",
+		},
 	}
 
 	for _, tt := range tests {
@@ -53,6 +89,66 @@ func TestFormatCodexMessage(t *testing.T) {
 			assert.Equal(t, tt.want, FormatCodexMessage(tt.payload))
 		})
 	}
+}
+
+func TestCodexAgentLabel(t *testing.T) {
+	tests := []struct {
+		name        string
+		cwd         string
+		want        string
+		windowsOnly bool
+	}{
+		{name: "unix path", cwd: "/Users/user/my-project", want: "my-project"},
+		{name: "windows path", cwd: `C:\Users\user\my-project`, want: "my-project", windowsOnly: true},
+		{name: "empty", cwd: "", want: ""},
+		{name: "dot", cwd: ".", want: ""},
+		{name: "unix root", cwd: "/", want: ""},
+		{name: "windows root", cwd: `\`, want: "", windowsOnly: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.windowsOnly && runtime.GOOS != "windows" {
+				t.Skip("Windows path semantics only apply on Windows")
+			}
+			assert.Equal(t, tt.want, codexAgentLabel(tt.cwd))
+		})
+	}
+}
+
+func TestCodexThreadName(t *testing.T) {
+	dir := t.TempDir()
+	indexPath := filepath.Join(dir, "session_index.jsonl")
+
+	t.Run("returns empty when session_id is empty", func(t *testing.T) {
+		assert.Equal(t, "", codexThreadNameFromPath("", indexPath))
+	})
+
+	t.Run("returns empty when file does not exist", func(t *testing.T) {
+		assert.Equal(t, "", codexThreadNameFromPath("abc", filepath.Join(dir, "missing.jsonl")))
+	})
+
+	t.Run("returns thread name for matching session", func(t *testing.T) {
+		require.NoError(t, os.WriteFile(indexPath, []byte(
+			`{"id":"aaa","thread_name":"Fix auth bug","updated_at":"2026-01-01T00:00:00Z"}`+"\n"+
+				`{"id":"bbb","thread_name":"Other session","updated_at":"2026-01-01T00:01:00Z"}`+"\n",
+		), 0600))
+		assert.Equal(t, "Fix auth bug", codexThreadNameFromPath("aaa", indexPath))
+	})
+
+	t.Run("last rename wins", func(t *testing.T) {
+		require.NoError(t, os.WriteFile(indexPath, []byte(
+			`{"id":"aaa","thread_name":"Old name","updated_at":"2026-01-01T00:00:00Z"}`+"\n"+
+				`{"id":"aaa","thread_name":"New name","updated_at":"2026-01-01T00:01:00Z"}`+"\n",
+		), 0600))
+		assert.Equal(t, "New name", codexThreadNameFromPath("aaa", indexPath))
+	})
+
+	t.Run("returns empty for unmatched session", func(t *testing.T) {
+		require.NoError(t, os.WriteFile(indexPath, []byte(
+			`{"id":"aaa","thread_name":"Fix auth bug","updated_at":"2026-01-01T00:00:00Z"}`+"\n",
+		), 0600))
+		assert.Equal(t, "", codexThreadNameFromPath("zzz", indexPath))
+	})
 }
 
 func TestHandleHookCodex(t *testing.T) {
@@ -71,14 +167,14 @@ func TestHandleHookCodex(t *testing.T) {
 	}{
 		{
 			name:      "valid permission request",
-			data:      []byte(`{"hook_event_name":"PermissionRequest","tool_name":"shell"}`),
-			wantMsg:   "Codex needs approval for: shell",
+			data:      []byte(`{"hook_event_name":"PermissionRequest","tool_name":"shell","cwd":"/Users/user/n-cli"}`),
+			wantMsg:   "Codex [n-cli] needs approval for: shell",
 			wantNotif: true,
 		},
 		{
 			name:      "valid stop event",
-			data:      []byte(`{"hook_event_name":"Stop"}`),
-			wantMsg:   "Codex agent finished",
+			data:      []byte(`{"hook_event_name":"Stop","cwd":"/Users/user/n-cli"}`),
+			wantMsg:   "Codex [n-cli] agent finished",
 			wantNotif: true,
 		},
 		{
@@ -185,22 +281,22 @@ func TestHookCodexCommandOutput(t *testing.T) {
 	}{
 		{
 			name:       "stop writes valid JSON",
-			input:      `{"hook_event_name":"Stop"}`,
-			wantMsg:    "Codex agent finished",
+			input:      `{"hook_event_name":"Stop","cwd":"/Users/user/n-cli"}`,
+			wantMsg:    "Codex [n-cli] agent finished",
 			wantStdout: `{"continue":true}`,
 		},
 		{
 			name:       "stop writes valid JSON when notification fails",
-			input:      `{"hook_event_name":"Stop"}`,
-			wantMsg:    "Codex agent finished",
+			input:      `{"hook_event_name":"Stop","cwd":"/Users/user/n-cli"}`,
+			wantMsg:    "Codex [n-cli] agent finished",
 			wantStdout: `{"continue":true}`,
 			notifyErr:  errors.New("boom"),
 			wantStderr: "n-cli hook error: boom\n",
 		},
 		{
 			name:    "permission request writes no stdout",
-			input:   `{"hook_event_name":"PermissionRequest","tool_name":"shell"}`,
-			wantMsg: "Codex needs approval for: shell",
+			input:   `{"hook_event_name":"PermissionRequest","tool_name":"shell","cwd":"/Users/user/n-cli"}`,
+			wantMsg: "Codex [n-cli] needs approval for: shell",
 		},
 	}
 

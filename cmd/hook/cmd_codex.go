@@ -4,13 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
 type codexHookPayload struct {
-	HookEventName string `json:"hook_event_name"`
-	ToolName      string `json:"tool_name"`
+	HookEventName        string `json:"hook_event_name"`
+	ToolName             string `json:"tool_name"`
+	SessionID            string `json:"session_id"`
+	Cwd                  string `json:"cwd"`
+	LastAssistantMessage string `json:"last_assistant_message"`
 }
 
 func NewHookCodexCmd() *cobra.Command {
@@ -64,21 +70,75 @@ func HandleHookCodex(data []byte) ([]byte, error) {
 	return output, notify(msg)
 }
 
+// codexThreadName looks up the human-readable session name from ~/.codex/session_index.jsonl.
+// The file is append-only; renames add a new line, so the last matching entry wins.
+func codexThreadName(sessionID string) string {
+	if sessionID == "" {
+		return ""
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return codexThreadNameFromPath(sessionID, filepath.Join(home, ".codex", "session_index.jsonl"))
+}
+
+func codexThreadNameFromPath(sessionID, indexPath string) string {
+	if sessionID == "" {
+		return ""
+	}
+	data, err := os.ReadFile(indexPath)
+	if err != nil {
+		return ""
+	}
+	var name string
+	for line := range strings.SplitSeq(strings.TrimSpace(string(data)), "\n") {
+		var entry struct {
+			ID         string `json:"id"`
+			ThreadName string `json:"thread_name"`
+		}
+		if json.Unmarshal([]byte(line), &entry) == nil && entry.ID == sessionID {
+			name = entry.ThreadName
+		}
+	}
+	return name
+}
+
+// codexAgentLabel extracts the project name from the working directory as a fallback label.
+func codexAgentLabel(cwd string) string {
+	if cwd == "" {
+		return ""
+	}
+	name := filepath.Base(cwd)
+	if name == "." || name == "/" || name == "\\" {
+		return ""
+	}
+	return name
+}
+
 func FormatCodexMessage(payload codexHookPayload) string {
+	label := codexThreadName(payload.SessionID)
+	if label == "" {
+		label = codexAgentLabel(payload.Cwd)
+	}
+	prefix := "Codex"
+	if label != "" {
+		prefix = fmt.Sprintf("Codex [%s]", label)
+	}
 	switch payload.HookEventName {
 	case "PermissionRequest":
 		tool := payload.ToolName
 		if tool == "" {
 			tool = "unknown tool"
 		}
-		return fmt.Sprintf("Codex needs approval for: %s", tool)
+		return fmt.Sprintf("%s needs approval for: %s", prefix, tool)
 	case "Stop":
-		return "Codex agent finished"
+		return fmt.Sprintf("%s agent finished", prefix)
 	default:
 		event := payload.HookEventName
 		if event == "" {
 			event = "unknown"
 		}
-		return fmt.Sprintf("Codex hook: %s", event)
+		return fmt.Sprintf("%s hook: %s", prefix, event)
 	}
 }
