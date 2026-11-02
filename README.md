@@ -131,7 +131,7 @@ slack: # if missing, n-cli won't use Slack as a notification channel
   disabled: true # optional - if true, n-cli won't send to Slack (keeps your settings)
 
 customs: # if missing, n-cli won't use custom webhooks as a notification channel
-  - name: pagerduty # optional - custom label shown in notification output (default: "custom[0]", "custom[1]", etc.)
+  - name: pagerduty # optional - custom label shown in notification output (default: "custom[0]", "custom[1]", etc.); duplicates get a "#2", "#3" suffix
     targetUrl: https://api.example.com/webhook # required - the webhook URL to call
     payloadTemplate: '{"text": "{{message}}", "priority": "high"}' # required - template with {{message}} placeholder
     method: POST # optional - HTTP method (default: POST), case-insensitive

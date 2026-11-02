@@ -39,7 +39,7 @@ func NotifyTo(msg string, output io.Writer) error {
 	if cfg.Slack != nil && !cfg.Slack.Disabled {
 		notifierMap["slack"] = NewSlackNotifier()
 	}
-	for _, entry := range customNotifierEntries(cfg) {
+	for _, entry := range customNotifierEntries(cfg, output) {
 		notifierMap[entry.label] = NewCustomNotifierFromConfig(entry.cfg)
 	}
 	labels := make([]string, 0, len(notifierMap))
@@ -89,12 +89,24 @@ type customNotifierEntry struct {
 	cfg   config.CustomConfig
 }
 
-func customNotifierEntries(cfg config.Config) []customNotifierEntry {
+// builtinNotifierLabels are reserved so a custom entry can never replace a
+// built-in channel, even when that channel is disabled (keeps labels stable).
+var builtinNotifierLabels = []string{"system", "discord", "slack"}
+
+// customNotifierEntries returns the enabled custom notifiers with unique labels.
+// A label that clashes with a built-in or earlier entry gets a "#N" suffix and a
+// warning is written to output, so every configured webhook still fires.
+func customNotifierEntries(cfg config.Config, output io.Writer) []customNotifierEntry {
 	var customConfigs []config.CustomConfig
 	if cfg.Custom != nil {
 		customConfigs = append(customConfigs, *cfg.Custom)
 	}
 	customConfigs = append(customConfigs, cfg.Customs...)
+
+	used := map[string]bool{}
+	for _, l := range builtinNotifierLabels {
+		used[l] = true
+	}
 
 	entries := make([]customNotifierEntry, 0, len(customConfigs))
 	for i, cc := range customConfigs {
@@ -105,6 +117,13 @@ func customNotifierEntries(cfg config.Config) []customNotifierEntry {
 		if label == "" {
 			label = fmt.Sprintf("custom[%d]", i)
 		}
+		if base := label; used[base] {
+			for n := 2; used[label]; n++ {
+				label = fmt.Sprintf("%s#%d", base, n)
+			}
+			fmt.Fprintf(output, "Warning: custom notifier name %q is already in use; using %q instead\n", base, label)
+		}
+		used[label] = true
 		entries = append(entries, customNotifierEntry{
 			label: label,
 			cfg:   cc,
