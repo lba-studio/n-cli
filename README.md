@@ -121,12 +121,14 @@ discord: # if missing, n-cli won't use Discord as a notification channel
   # https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks
   webhookUrl: https://discord.com/api/webhooks/{yourwebhookurlhere} # required
   messageFormat: "<@1234> {{message}}" # optional
+  disabled: true # optional - if true, n-cli won't send to Discord (keeps your settings)
 
 slack: # if missing, n-cli won't use Slack as a notification channel
   # you can create one by following the steps here https://slack.com/intl/en-gb/help/articles/360041352714-Create-workflows-that-start-with-a-webhook
   # must have "message" as a variable. sample payload to the webhook: { "message": "{{message}}" }
   webhookUrl: https://hooks.slack.com/triggers/ABCDEFG123/123456789/whateverstringishere # required
   messageFormat: "{{message}}" # optional
+  disabled: true # optional - if true, n-cli won't send to Slack (keeps your settings)
 
 customs: # if missing, n-cli won't use custom webhooks as a notification channel
   - name: pagerduty # optional - custom label shown in notification output (default: "custom[0]", "custom[1]", etc.)
@@ -136,6 +138,7 @@ customs: # if missing, n-cli won't use custom webhooks as a notification channel
     headers: # optional - custom HTTP headers
       Authorization: Bearer your-token-here
       X-Custom-Header: custom-value
+    disabled: true # optional - if true, n-cli skips this entry (also works on the legacy `custom` block)
   - name: monitoring
     targetUrl: https://n-cli.sh/my_cool_topic_here
     payloadTemplate: 'Alert: {{message}}'

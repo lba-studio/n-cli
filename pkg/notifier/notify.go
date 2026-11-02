@@ -33,10 +33,10 @@ func NotifyTo(msg string, output io.Writer) error {
 	if cfg.System == nil || !cfg.System.Disabled {
 		notifierMap["system"] = NewSystemNotifier()
 	}
-	if cfg.Discord != nil {
+	if cfg.Discord != nil && !cfg.Discord.Disabled {
 		notifierMap["discord"] = NewDiscordNotifier()
 	}
-	if cfg.Slack != nil {
+	if cfg.Slack != nil && !cfg.Slack.Disabled {
 		notifierMap["slack"] = NewSlackNotifier()
 	}
 	for _, entry := range customNotifierEntries(cfg) {
@@ -98,6 +98,9 @@ func customNotifierEntries(cfg config.Config) []customNotifierEntry {
 
 	entries := make([]customNotifierEntry, 0, len(customConfigs))
 	for i, cc := range customConfigs {
+		if cc.Disabled {
+			continue
+		}
 		label := cc.Name
 		if label == "" {
 			label = fmt.Sprintf("custom[%d]", i)

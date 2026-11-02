@@ -67,6 +67,20 @@ func TestCustomNotifierEntries(t *testing.T) {
 		assert.Equal(t, "https://monitoring.example.com/notify", entries[1].cfg.TargetUrl)
 	})
 
+	t.Run("disabled entries skipped and labels stay stable", func(t *testing.T) {
+		cfg := config.Config{
+			Customs: []config.CustomConfig{
+				{TargetUrl: "https://a.example.com", Disabled: true},
+				{TargetUrl: "https://b.example.com"},
+			},
+		}
+
+		entries := customNotifierEntries(cfg)
+		assert.Len(t, entries, 1)
+		assert.Equal(t, "custom[1]", entries[0].label)
+		assert.Equal(t, "https://b.example.com", entries[0].cfg.TargetUrl)
+	})
+
 	t.Run("empty when no custom config", func(t *testing.T) {
 		entries := customNotifierEntries(config.Config{})
 		assert.Empty(t, entries)
