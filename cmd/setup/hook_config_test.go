@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/lba-studio/n-cli/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +32,7 @@ hooks:
 		ignoredEventsChanged: true,
 	}))
 
-	root, err := readConfigMap(path)
+	root, err := config.ReadConfigMap(path)
 	require.NoError(t, err)
 	system := root["system"].(map[string]interface{})
 	assert.Equal(t, true, system["disabled"])
@@ -44,7 +45,7 @@ hooks:
 		ignoredEventsChanged: true,
 	}))
 
-	root, err = readConfigMap(path)
+	root, err = config.ReadConfigMap(path)
 	require.NoError(t, err)
 	codex = root["hooks"].(map[string]interface{})["codex"].(map[string]interface{})
 	assert.Equal(t, true, codex["setup"])
@@ -59,7 +60,7 @@ func TestUpdateHookSetupConfigStoresArbitraryEventNames(t *testing.T) {
 		ignoredEventsChanged: true,
 	}))
 
-	root, err := readConfigMap(path)
+	root, err := config.ReadConfigMap(path)
 	require.NoError(t, err)
 	cursor := root["hooks"].(map[string]interface{})["cursor"].(map[string]interface{})
 	assert.Equal(t, []interface{}{"not-a-real-event"}, cursor["ignored_events"])
@@ -70,7 +71,7 @@ func TestUpdateHookSetupConfigFirstSetup(t *testing.T) {
 
 	require.NoError(t, updateHookSetupConfig(path, claudeCodeHookSetupAgent, hookSetupOptions{}))
 
-	root, err := readConfigMap(path)
+	root, err := config.ReadConfigMap(path)
 	require.NoError(t, err)
 	claudeCode := root["hooks"].(map[string]interface{})["claude_code"].(map[string]interface{})
 	assert.Equal(t, true, claudeCode["setup"])
@@ -88,7 +89,7 @@ func TestUpdateHookSetupConfigExistingAgentKeepsIgnoredEvents(t *testing.T) {
 
 	require.NoError(t, updateHookSetupConfig(path, cursorHookSetupAgent, hookSetupOptions{}))
 
-	root, err := readConfigMap(path)
+	root, err := config.ReadConfigMap(path)
 	require.NoError(t, err)
 	cursor := root["hooks"].(map[string]interface{})["cursor"].(map[string]interface{})
 	assert.Equal(t, true, cursor["setup"])

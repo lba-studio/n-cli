@@ -18,7 +18,8 @@ cmd/            # Cobra command definitions — one file per top-level command
   hook/         # Subcommands for processing LLM agent hook events (Cursor, Codex, Claude Code)
   where/        # Subcommands for the `where` command
 internal/
-  config/       # Config loading and initialisation (viper-based, ~/.n-cli/config.yaml)
+  config/       # Config loading/initialisation (viper-based, ~/.n-cli/config.yaml), config-file
+                #   read/write helpers (config_file.go), and channel enable/disable (channel_toggle.go)
 pkg/
   notifier/     # Core notification logic — each channel (Discord, Slack, customs, system) has its own file
     marker/     # Tracks command run metrics (duration, exit code) for `n-cli run`
@@ -32,6 +33,8 @@ pkg/
 **Adding a new notification channel** (e.g. Telegram): add a `telegram.go` in `pkg/notifier/`, implement the `Notifier` interface, and wire it up in `pkg/notifier/notify.go` alongside the existing channels. Add its config struct to `internal/config`.
 
 **Adding a new top-level command**: create `cmd/cmd_<name>.go`, define a `New<Name>Cmd() *cobra.Command` function, and register it in `cmd/root.go`'s `init()`.
+
+**Editing the config file from a command**: use `config.ConfigFilePath()`, `config.ReadConfigMap()` and `config.WriteConfigMap()` from `internal/config/config_file.go` (edits a generic map so unknown keys survive). See `cmd/cmd_disable.go` (`n-cli disable` / `n-cli enable`) and `cmd/setup/hook_config.go`.
 
 **Adding a new `setup` subcommand** (e.g. for a new agent integration): add a file in `cmd/setup/`, implement the setup logic there, and register it in `cmd/cmd_setup.go`'s `NewSetupCmd()`.
 
