@@ -7,6 +7,7 @@ type SlackConfig = WebhookConfig
 type WebhookConfig struct {
 	WebhookURL    string `mapstructure:"webhookUrl"`
 	MessageFormat string `mapstructure:"messageFormat"`
+	Disabled      bool   `mapstructure:"disabled,omitempty"`
 }
 
 type CustomConfig struct {
@@ -15,6 +16,7 @@ type CustomConfig struct {
 	TargetUrl       string            `mapstructure:"targetUrl"`
 	Method          string            `mapstructure:"method"`
 	Headers         map[string]string `mapstructure:"headers"`
+	Disabled        bool              `mapstructure:"disabled,omitempty" yaml:"disabled,omitempty"`
 }
 
 type SystemConfig struct {
@@ -45,8 +47,8 @@ type HooksConfig struct {
 type Config struct {
 	Discord *DiscordConfig `mapstructure:"discord" yaml:"discord,omitempty"`
 	Slack   *SlackConfig   `mapstructure:"slack" yaml:"slack,omitempty"`
-	Custom  *CustomConfig   `mapstructure:"custom" yaml:"custom,omitempty"`
-	Customs []CustomConfig  `mapstructure:"customs" yaml:"customs,omitempty"`
-	System  *SystemConfig   `mapstructure:"system" yaml:"system,omitempty"`
+	Custom  *CustomConfig  `mapstructure:"custom" yaml:"custom,omitempty"`
+	Customs []CustomConfig `mapstructure:"customs" yaml:"customs,omitempty"`
+	System  *SystemConfig  `mapstructure:"system" yaml:"system,omitempty"`
 	Hooks   *HooksConfig   `mapstructure:"hooks" yaml:"hooks,omitempty"`
 }
