@@ -40,6 +40,9 @@ func NotifyTo(msg string, output io.Writer) error {
 		notifierMap["slack"] = NewSlackNotifier()
 	}
 	for _, entry := range customNotifierEntries(cfg) {
+		if entry.renamedFrom != "" {
+			fmt.Fprintf(output, "Warning: custom notifier name %q is already in use; using %q instead\n", entry.renamedFrom, entry.label)
+		}
 		notifierMap[entry.label] = NewCustomNotifierFromConfig(entry.cfg)
 	}
 	labels := make([]string, 0, len(notifierMap))
@@ -85,16 +88,29 @@ func NotifyTo(msg string, output io.Writer) error {
 }
 
 type customNotifierEntry struct {
-	label string
-	cfg   config.CustomConfig
+	label       string
+	renamedFrom string // original label, set when label was suffixed to avoid a clash
+	cfg         config.CustomConfig
 }
 
+// builtinNotifierLabels are reserved so a custom entry can never replace a
+// built-in channel, even when that channel is disabled (keeps labels stable).
+var builtinNotifierLabels = []string{"system", "discord", "slack"}
+
+// customNotifierEntries returns the enabled custom notifiers with unique labels.
+// A label that clashes with a built-in or earlier entry gets a "#N" suffix (and
+// renamedFrom is set), so every configured webhook still fires.
 func customNotifierEntries(cfg config.Config) []customNotifierEntry {
 	var customConfigs []config.CustomConfig
 	if cfg.Custom != nil {
 		customConfigs = append(customConfigs, *cfg.Custom)
 	}
 	customConfigs = append(customConfigs, cfg.Customs...)
+
+	used := map[string]bool{}
+	for _, l := range builtinNotifierLabels {
+		used[l] = true
+	}
 
 	entries := make([]customNotifierEntry, 0, len(customConfigs))
 	for i, cc := range customConfigs {
@@ -105,9 +121,18 @@ func customNotifierEntries(cfg config.Config) []customNotifierEntry {
 		if label == "" {
 			label = fmt.Sprintf("custom[%d]", i)
 		}
+		renamedFrom := ""
+		if used[label] {
+			renamedFrom = label
+			for n := 2; used[label]; n++ {
+				label = fmt.Sprintf("%s#%d", renamedFrom, n)
+			}
+		}
+		used[label] = true
 		entries = append(entries, customNotifierEntry{
-			label: label,
-			cfg:   cc,
+			label:       label,
+			renamedFrom: renamedFrom,
+			cfg:         cc,
 		})
 	}
 	return entries
