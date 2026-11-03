@@ -1,8 +1,6 @@
 package notifier
 
 import (
-	"bytes"
-	"io"
 	"testing"
 
 	"github.com/lba-studio/n-cli/internal/config"
@@ -19,7 +17,7 @@ func TestCustomNotifierEntries(t *testing.T) {
 			},
 		}
 
-		entries := customNotifierEntries(cfg, io.Discard)
+		entries := customNotifierEntries(cfg)
 		assert.Len(t, entries, 1)
 		assert.Equal(t, "legacy", entries[0].label)
 		assert.Equal(t, cfg.Custom.TargetUrl, entries[0].cfg.TargetUrl)
@@ -40,7 +38,7 @@ func TestCustomNotifierEntries(t *testing.T) {
 			},
 		}
 
-		entries := customNotifierEntries(cfg, io.Discard)
+		entries := customNotifierEntries(cfg)
 		assert.Len(t, entries, 2)
 		assert.Equal(t, "pagerduty", entries[0].label)
 		assert.Equal(t, "custom[1]", entries[1].label)
@@ -61,7 +59,7 @@ func TestCustomNotifierEntries(t *testing.T) {
 			},
 		}
 
-		entries := customNotifierEntries(cfg, io.Discard)
+		entries := customNotifierEntries(cfg)
 		assert.Len(t, entries, 2)
 		assert.Equal(t, "custom[0]", entries[0].label)
 		assert.Equal(t, "monitoring", entries[1].label)
@@ -77,18 +75,18 @@ func TestCustomNotifierEntries(t *testing.T) {
 			},
 		}
 
-		entries := customNotifierEntries(cfg, io.Discard)
+		entries := customNotifierEntries(cfg)
 		assert.Len(t, entries, 1)
 		assert.Equal(t, "custom[1]", entries[0].label)
 		assert.Equal(t, "https://b.example.com", entries[0].cfg.TargetUrl)
 	})
 
 	t.Run("empty when no custom config", func(t *testing.T) {
-		entries := customNotifierEntries(config.Config{}, io.Discard)
+		entries := customNotifierEntries(config.Config{})
 		assert.Empty(t, entries)
 	})
 
-	t.Run("duplicate names get suffixed and warn", func(t *testing.T) {
+	t.Run("duplicate names get suffixed", func(t *testing.T) {
 		cfg := config.Config{
 			Custom: &config.CustomConfig{Name: "alerts", TargetUrl: "https://a.example.com"},
 			Customs: []config.CustomConfig{
@@ -97,15 +95,15 @@ func TestCustomNotifierEntries(t *testing.T) {
 			},
 		}
 
-		var out bytes.Buffer
-		entries := customNotifierEntries(cfg, &out)
+		entries := customNotifierEntries(cfg)
 		assert.Len(t, entries, 3)
 		assert.Equal(t, "alerts", entries[0].label)
+		assert.Empty(t, entries[0].renamedFrom)
 		assert.Equal(t, "alerts#2", entries[1].label)
+		assert.Equal(t, "alerts", entries[1].renamedFrom)
 		assert.Equal(t, "alerts#3", entries[2].label)
+		assert.Equal(t, "alerts", entries[2].renamedFrom)
 		assert.Equal(t, "https://c.example.com", entries[2].cfg.TargetUrl)
-		assert.Contains(t, out.String(), `"alerts#2"`)
-		assert.Contains(t, out.String(), `"alerts#3"`)
 	})
 
 	t.Run("names clashing with built-in channels get suffixed", func(t *testing.T) {
@@ -116,10 +114,12 @@ func TestCustomNotifierEntries(t *testing.T) {
 			},
 		}
 
-		entries := customNotifierEntries(cfg, io.Discard)
+		entries := customNotifierEntries(cfg)
 		assert.Len(t, entries, 2)
 		assert.Equal(t, "slack#2", entries[0].label)
+		assert.Equal(t, "slack", entries[0].renamedFrom)
 		assert.Equal(t, "system#2", entries[1].label)
+		assert.Equal(t, "system", entries[1].renamedFrom)
 	})
 
 	t.Run("name clashing with auto-generated label gets suffixed", func(t *testing.T) {
@@ -130,13 +130,14 @@ func TestCustomNotifierEntries(t *testing.T) {
 			},
 		}
 
-		entries := customNotifierEntries(cfg, io.Discard)
+		entries := customNotifierEntries(cfg)
 		assert.Len(t, entries, 2)
 		assert.Equal(t, "custom[0]", entries[0].label)
 		assert.Equal(t, "custom[0]#2", entries[1].label)
+		assert.Equal(t, "custom[0]", entries[1].renamedFrom)
 	})
 
-	t.Run("unique names produce no warning", func(t *testing.T) {
+	t.Run("unique names are not renamed", func(t *testing.T) {
 		cfg := config.Config{
 			Customs: []config.CustomConfig{
 				{Name: "a", TargetUrl: "https://a.example.com"},
@@ -144,8 +145,10 @@ func TestCustomNotifierEntries(t *testing.T) {
 			},
 		}
 
-		var out bytes.Buffer
-		customNotifierEntries(cfg, &out)
-		assert.Empty(t, out.String())
+		entries := customNotifierEntries(cfg)
+		assert.Len(t, entries, 2)
+		for _, e := range entries {
+			assert.Empty(t, e.renamedFrom)
+		}
 	})
 }

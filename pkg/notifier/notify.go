@@ -39,7 +39,10 @@ func NotifyTo(msg string, output io.Writer) error {
 	if cfg.Slack != nil && !cfg.Slack.Disabled {
 		notifierMap["slack"] = NewSlackNotifier()
 	}
-	for _, entry := range customNotifierEntries(cfg, output) {
+	for _, entry := range customNotifierEntries(cfg) {
+		if entry.renamedFrom != "" {
+			fmt.Fprintf(output, "Warning: custom notifier name %q is already in use; using %q instead\n", entry.renamedFrom, entry.label)
+		}
 		notifierMap[entry.label] = NewCustomNotifierFromConfig(entry.cfg)
 	}
 	labels := make([]string, 0, len(notifierMap))
@@ -85,8 +88,9 @@ func NotifyTo(msg string, output io.Writer) error {
 }
 
 type customNotifierEntry struct {
-	label string
-	cfg   config.CustomConfig
+	label       string
+	renamedFrom string // original label, set when label was suffixed to avoid a clash
+	cfg         config.CustomConfig
 }
 
 // builtinNotifierLabels are reserved so a custom entry can never replace a
@@ -94,9 +98,9 @@ type customNotifierEntry struct {
 var builtinNotifierLabels = []string{"system", "discord", "slack"}
 
 // customNotifierEntries returns the enabled custom notifiers with unique labels.
-// A label that clashes with a built-in or earlier entry gets a "#N" suffix and a
-// warning is written to output, so every configured webhook still fires.
-func customNotifierEntries(cfg config.Config, output io.Writer) []customNotifierEntry {
+// A label that clashes with a built-in or earlier entry gets a "#N" suffix (and
+// renamedFrom is set), so every configured webhook still fires.
+func customNotifierEntries(cfg config.Config) []customNotifierEntry {
 	var customConfigs []config.CustomConfig
 	if cfg.Custom != nil {
 		customConfigs = append(customConfigs, *cfg.Custom)
@@ -117,16 +121,18 @@ func customNotifierEntries(cfg config.Config, output io.Writer) []customNotifier
 		if label == "" {
 			label = fmt.Sprintf("custom[%d]", i)
 		}
-		if base := label; used[base] {
+		renamedFrom := ""
+		if used[label] {
+			renamedFrom = label
 			for n := 2; used[label]; n++ {
-				label = fmt.Sprintf("%s#%d", base, n)
+				label = fmt.Sprintf("%s#%d", renamedFrom, n)
 			}
-			fmt.Fprintf(output, "Warning: custom notifier name %q is already in use; using %q instead\n", base, label)
 		}
 		used[label] = true
 		entries = append(entries, customNotifierEntry{
-			label: label,
-			cfg:   cc,
+			label:       label,
+			renamedFrom: renamedFrom,
+			cfg:         cc,
 		})
 	}
 	return entries
