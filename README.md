@@ -63,6 +63,9 @@ n-cli setup claude-code  # set up Claude Code hooks so you get notified when the
 n-cli setup codex --ignored-events=PermissionRequest # skip notifications for selected hook events
 
 # useful commands
+n-cli disable slack      # stop sending to a channel without deleting its settings
+n-cli disable customs[0] # ...or a custom webhook by index (into `customs`) or by its `name`
+n-cli enable slack       # turn it back on
 n-cli init # optional: initializes & configures n-cli without running anything
 n-cli where config # where is your config?
 n-cli version # get version
@@ -157,3 +160,16 @@ hooks: # optional - per-agent hook notification preferences
     ignored_events:
       - stop
 ```
+
+### Enabling / disabling channels
+
+Rather than editing `disabled:` by hand, you can toggle a channel from the CLI:
+
+```sh
+n-cli disable <label>
+n-cli enable <label>
+```
+
+`<label>` is one of `system`, `discord`, `slack`, `custom` (the legacy single `custom` block), `customs[i]` (0-based index into `customs`), or a custom entry's `name`. Built-in names take precedence over a custom entry with the same name; if a name matches several entries, use `customs[i]` instead. `disable` sets `disabled: true` and `enable` sets `disabled: false`.
+
+Only the `disabled` value is edited (or a `disabled:` line inserted); comments, key order and formatting elsewhere in the file are left as they are. Configs the command cannot edit safely in place (e.g. a channel defined through a YAML alias) are left untouched with an error.

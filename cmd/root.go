@@ -37,6 +37,8 @@ func init() {
 		NewRunCmd(),
 		NewSetupCmd(),
 		NewHookCmd(),
+		NewDisableCmd(),
+		NewEnableCmd(),
 	)
 }
 
