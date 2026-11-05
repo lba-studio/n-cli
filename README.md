@@ -170,6 +170,6 @@ n-cli disable <label>
 n-cli enable <label>
 ```
 
-`<label>` is one of `system`, `discord`, `slack`, `custom` (the legacy single `custom` block), `customs[i]` (0-based index into `customs`), or a custom entry's `name`. Built-in names take precedence over a custom entry with the same name; if a name matches several entries, use `customs[i]` instead. `enable` removes the `disabled` key.
+`<label>` is one of `system`, `discord`, `slack`, `custom` (the legacy single `custom` block), `customs[i]` (0-based index into `customs`), or a custom entry's `name`. Built-in names take precedence over a custom entry with the same name; if a name matches several entries, use `customs[i]` instead. `disable` sets `disabled: true` and `enable` sets `disabled: false`.
 
-Note: the config file is rewritten, so YAML comments and key ordering are not preserved.
+Only the `disabled` value is edited (or a `disabled:` line inserted); comments, key order and formatting elsewhere in the file are left as they are. Configs the command cannot edit safely in place (e.g. a channel defined through a YAML alias) are left untouched with an error.

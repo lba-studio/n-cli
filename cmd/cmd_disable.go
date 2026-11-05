@@ -22,14 +22,14 @@ func NewEnableCmd() *cobra.Command {
 }
 
 func newChannelToggleCmd(disable bool) *cobra.Command {
-	verb, past, setting := "enable", "Enabled", "removes `disabled`"
+	verb, past, setting := "enable", "Enabled", "sets `disabled: false`"
 	if disable {
 		verb, past, setting = "disable", "Disabled", "sets `disabled: true`"
 	}
 	return &cobra.Command{
 		Use:   verb + " <label>",
 		Short: fmt.Sprintf("%s a notification channel in the config.", past[:len(past)-1]),
-		Long: fmt.Sprintf("%s a notification channel without losing its settings (%s in the config file).\n\n%s",
+		Long: fmt.Sprintf("%s a notification channel without losing its settings (%s in the config file).\nOnly that value is edited; comments and formatting elsewhere in the file are kept.\n\n%s",
 			past[:len(past)-1], setting, channelLabelHelp),
 		Example: fmt.Sprintf("  n-cli %[1]s slack\n  n-cli %[1]s customs[0]\n  n-cli %[1]s pagerduty", verb),
 		Args:    cobra.ExactArgs(1),
